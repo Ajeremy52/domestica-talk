@@ -106,7 +106,7 @@ const eur = n => "€" + Number(n).toLocaleString("en-IE", { maximumFractionDigi
 function showProducts({ names }){
   const box = $("cards"); box.textContent = "";
   const seen = new Set();
-  String(names||"").split(/[|;\n]/).slice(0,3).forEach(nm => {
+  (Array.isArray(names) ? names : String(names||"").split(/[|;\n]/)).map(x=>String(x).trim()).filter(Boolean).slice(0,3).forEach(nm => {
     const c = best(nm); if (!c || seen.has(c.h)) return; seen.add(c.h);
     const d = document.createElement("div"); d.className = "pc";
     if (c.img) { const i = document.createElement("img"); i.src = c.img.replace(/(\.[a-z]+)(\?|$)/i, "$1$2") + (c.img.includes("?") ? "&" : "?") + "width=600"; i.alt = c.t; d.appendChild(i); }
