@@ -122,7 +122,7 @@ function showProducts({ names }){
   return box.children.length ? "shown" : "not found";
 }
 window.__dom = { showProducts, cat: () => CAT.length };
-let conv = null, raf = 0, idleTimer = 0;
+let conv = null, raf = 0, idleTimer = 0, starting = false;
 const src = new URLSearchParams(location.search).get("src") || "direct";
 function setState(s, txt){ const hc = document.body.classList.contains("has-cards"); document.body.className = s; if (hc) document.body.classList.add("has-cards"); if (txt != null) $("status").textContent = txt; }
 function loop(){
@@ -141,7 +141,8 @@ function reset(msg){
   idleTimer = setTimeout(() => { $("cards").textContent = ""; document.body.classList.remove("has-cards"); $("sub").textContent = "Ask about any piece in the showroom – prices, sizes, colours, offers – or book a free consultation."; }, 8000);
 }
 async function start(){
-  if (conv) return;
+  if (conv || starting) return;
+  starting = true;
   setState("connecting", "Connecting…");
   $("sub").textContent = "";
   try {
@@ -152,7 +153,7 @@ async function start(){
       dynamicVariables: { source: src },
       clientTools: { show_products: showProducts },
       onConnect: () => { $("end").hidden = false; loop(); },
-      onDisconnect: () => reset("Thanks for visiting Domestica"),
+      onDisconnect: (d) => reset(d && d.reason === "error" ? "The assistant isn't available right now – please ask anyone at the front desk" : "Thanks for visiting Domestica"),
       onError: (e) => { console.error(e); reset("Sorry, something went wrong – tap to try again"); },
       onModeChange: ({ mode }) => setState(mode === "speaking" ? "speaking" : "listening", mode === "speaking" ? "Domestica is speaking…" : "Listening…"),
       onMessage: ({ message, source }) => {
@@ -163,11 +164,11 @@ async function start(){
     });
   } catch (e) {
     console.error(e);
-    reset(e && e.name === "NotAllowedError" ? "Please allow the microphone, then tap the orb" : "Couldn't connect – tap to try again");
-  }
+    reset(e && e.name === "NotAllowedError" ? "Please allow the microphone, then tap the orb" : "The assistant isn't available right now – please ask anyone at the front desk");
+  } finally { starting = false; }
 }
 $("orb").addEventListener("click", () => {
-  if (new URLSearchParams(location.search).get("kiosk") === "1" && !document.fullscreenElement) { try { document.documentElement.requestFullscreen(); } catch(e){} } conv ? conv.endSession() : start(); });
+  if (new URLSearchParams(location.search).get("kiosk") === "1" && !document.fullscreenElement) { try { document.documentElement.requestFullscreen(); } catch(e){} } if (starting) return; conv ? conv.endSession() : start(); });
 $("end").addEventListener("click", () => conv && conv.endSession());
 </script>
 </body>
