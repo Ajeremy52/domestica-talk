@@ -72,7 +72,7 @@ body.has-cards main{gap:2.2vh}
 <div class="foot">You're talking to Domestica's AI assistant. Conversations are recorded to improve our service.</div>
 <script type="module">
 import { Conversation } from "https://cdn.jsdelivr.net/npm/@elevenlabs/client/+esm";
-const AGENT = "agent_1701m7cvpgtbfz6t8dc4thm38y4z";
+const AGENT = "agent_1801m7dts975e2hv3zhqz9bn7z0m";
 const $ = id => document.getElementById(id);
 let CAT = [];
 const norm = t => String(t||"").toLowerCase().replace(/[–—-]/g," ").replace(/[^a-z0-9à-ÿ ]/g," ").replace(/\s+/g," ").trim();
@@ -170,6 +170,9 @@ async function start(){
 $("orb").addEventListener("click", () => {
   if (new URLSearchParams(location.search).get("kiosk") === "1" && !document.fullscreenElement) { try { document.documentElement.requestFullscreen(); } catch(e){} } if (starting) return; conv ? conv.endSession() : start(); });
 $("end").addEventListener("click", () => conv && conv.endSession());
+// Save credits: stop the call when the visitor leaves the page or locks the phone
+document.addEventListener("visibilitychange", () => { if (document.hidden && conv) { try { conv.endSession(); } catch(e){} } });
+window.addEventListener("pagehide", () => { if (conv) { try { conv.endSession(); } catch(e){} } });
 </script>
 </body>
 </html>
