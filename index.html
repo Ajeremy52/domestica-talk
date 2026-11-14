@@ -50,6 +50,11 @@ body.listening #orb .core,body.speaking #orb .core{animation:none}
 .pc .t{font-weight:600;font-size:clamp(14px,1.4vw,18px);line-height:1.3}
 .pc .p{margin-top:6px;font-size:clamp(16px,1.6vw,22px);font-weight:700;color:#9fe0b8}
 .pc .p s{color:#8aa197;font-weight:400;font-size:.8em;margin-left:8px}
+.pc .acts{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.pc .acts a{flex:1;text-align:center;text-decoration:none;font-size:13px;font-weight:700;border-radius:10px;padding:8px 6px;border:1px solid rgba(191,243,214,.35);color:#dff5e8}
+.pc .acts a.buy{background:#9fe0b8;color:#0f2a1f;border-color:#9fe0b8}
+.pc .qr{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:12px;color:#bcd3c7;line-height:1.3}
+.pc .qr img{width:84px;height:84px;aspect-ratio:auto;border-radius:6px;background:#fff;padding:4px;flex:none}
 .pc .d{display:inline-block;margin-top:6px;font-size:12px;font-weight:700;letter-spacing:.08em;background:#b8613c;color:#fff;border-radius:999px;padding:3px 9px}
 @keyframes pin{from{opacity:0;transform:translateY(16px)}}
 body.has-cards #orb{width:min(30vmin,240px)}
@@ -72,6 +77,7 @@ body.has-cards main{gap:2.2vh}
 <div class="foot">You're talking to Domestica's AI assistant. Conversations are recorded to improve our service.</div>
 <script type="module">
 import { Conversation } from "https://cdn.jsdelivr.net/npm/@elevenlabs/client/+esm";
+import QRCode from "https://cdn.jsdelivr.net/npm/qrcode@1.5.4/+esm";
 const AGENT = "agent_1801m7dts975e2hv3zhqz9bn7z0m";
 const $ = id => document.getElementById(id);
 let CAT = [];
@@ -85,7 +91,7 @@ const norm = t => String(t||"").toLowerCase().replace(/[–—-]/g," ").replace(
         if (x.product_type === "Bespoke Components") continue;
         const v = x.variants || []; const pr = Math.min(...v.map(a => +a.price || 0));
         const cmp = Math.max(0, ...v.map(a => +a.compare_at_price || 0));
-        CAT.push({ t: x.title, n: norm(x.title), h: x.handle, img: (x.images && x.images[0] && x.images[0].src) || "", price: pr, was: cmp > pr ? cmp : 0, avail: v.some(a => a.available) });
+        CAT.push({ t: x.title, n: norm(x.title), h: x.handle, img: (x.images && x.images[0] && x.images[0].src) || "", price: pr, was: cmp > pr ? cmp : 0, avail: v.some(a => a.available), vid: ((v.find(a => a.available) || v[0] || {}).id) || 0 });
       }
       if (ps.length < 250) break;
     }
@@ -116,6 +122,22 @@ function showProducts({ names }){
     if (c.was) { const w = document.createElement("s"); w.textContent = eur(c.was); p.appendChild(w); }
     b.appendChild(p);
     if (c.was) { const g = document.createElement("span"); g.className = "d"; g.textContent = "BLACK NOVEMBER"; b.appendChild(g); }
+    const SITE = "https://www.domestica.com.mt";
+    const utm = "utm_source=showroom_assistant&utm_medium=" + encodeURIComponent(SRC) + "&utm_campaign=voice_assistant";
+    const purl = SITE + "/products/" + c.h + "?" + utm;
+    if (KIOSK) {
+      const q = document.createElement("div"); q.className = "qr";
+      const qi = document.createElement("img"); qi.alt = "Scan to open on your phone";
+      QRCode.toDataURL(SITE + "/products/" + c.h + "?" + utm.replace(encodeURIComponent(SRC), "screen_qr"), { margin: 1, width: 200 }).then(u => qi.src = u).catch(() => {});
+      const qt = document.createElement("span"); qt.textContent = "Scan to see it on your phone and buy online";
+      q.appendChild(qi); q.appendChild(qt); b.appendChild(q);
+    } else {
+      const a = document.createElement("div"); a.className = "acts";
+      const l1 = document.createElement("a"); l1.href = purl; l1.target = "_blank"; l1.rel = "noopener"; l1.textContent = "View on website";
+      a.appendChild(l1);
+      if (c.price && c.avail && c.vid) { const l2 = document.createElement("a"); l2.className = "buy"; l2.href = SITE + "/cart/add?id=" + c.vid + "&quantity=1&return_to=" + encodeURIComponent("/cart?" + utm); l2.target = "_blank"; l2.rel = "noopener"; l2.textContent = "Add to basket"; a.appendChild(l2); }
+      b.appendChild(a);
+    }
     d.appendChild(b); box.appendChild(d);
   });
   document.body.classList.toggle("has-cards", !!box.children.length);
@@ -145,7 +167,11 @@ function wakeListen(){
   }
   try { rec.start(); recOn = true; } catch(e) { recOn = false; }
 }
-const src = new URLSearchParams(location.search).get("src") || "direct";
+const _q = new URLSearchParams(location.search);
+const KIOSK = _q.get("kiosk") === "1";
+const SRC = _q.get("src") || (KIOSK ? "screen" : (/domestica\.com\.mt/.test(document.referrer) ? "website" : "direct"));
+const DEVICE = KIOSK ? "showroom screen" : (/Mobi|Android|iPhone/i.test(navigator.userAgent) ? "phone" : "computer");
+const src = SRC;
 function setState(s, txt){ const hc = document.body.classList.contains("has-cards"); document.body.className = s; if (hc) document.body.classList.add("has-cards"); if (txt != null) $("status").textContent = txt; }
 function loop(){
   if (!conv) return;
@@ -173,7 +199,7 @@ async function start(){
     conv = await Conversation.startSession({
       agentId: AGENT,
       connectionType: "webrtc",
-      dynamicVariables: { source: src },
+      dynamicVariables: { source: src, device: DEVICE },
       clientTools: { show_products: showProducts },
       onConnect: () => { $("end").hidden = false; loop(); },
       onDisconnect: (d) => reset(d && d.reason === "error" ? "The assistant isn't available right now – please ask anyone at the front desk" : "Thanks for visiting Domestica"),
