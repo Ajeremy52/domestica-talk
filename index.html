@@ -32,6 +32,19 @@ body.listening #orb .core,body.speaking #orb .core{animation:none}
 #end{border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.25);color:#fff;border-radius:999px;padding:12px 26px;font:600 16px Inter,system-ui;cursor:pointer}
 #end[hidden]{display:none}
 .foot{position:fixed;bottom:max(14px,env(safe-area-inset-bottom));left:0;right:0;font-size:12px;color:#7f958b}
+#cards{display:flex;gap:2vw;justify-content:center;flex-wrap:wrap;max-width:94vw}
+#cards:empty{display:none}
+.pc{width:min(26vw,300px);background:rgba(255,255,255,.06);border:1px solid rgba(191,243,214,.2);border-radius:18px;overflow:hidden;text-align:left;animation:pin .5s ease-out both}
+.pc img{width:100%;aspect-ratio:4/3;object-fit:cover;background:#fff;display:block}
+.pc .b{padding:12px 14px}
+.pc .t{font-weight:600;font-size:clamp(14px,1.4vw,18px);line-height:1.3}
+.pc .p{margin-top:6px;font-size:clamp(16px,1.6vw,22px);font-weight:700;color:#9fe0b8}
+.pc .p s{color:#8aa197;font-weight:400;font-size:.8em;margin-left:8px}
+.pc .d{display:inline-block;margin-top:6px;font-size:12px;font-weight:700;letter-spacing:.08em;background:#b8613c;color:#fff;border-radius:999px;padding:3px 9px}
+@keyframes pin{from{opacity:0;transform:translateY(16px)}}
+body.has-cards #orb{width:min(30vmin,240px)}
+body.has-cards main{gap:2.2vh}
+#orb{transition:width .4s ease}
 </style>
 </head>
 <body>
@@ -43,6 +56,7 @@ body.listening #orb .core,body.speaking #orb .core{animation:none}
   </button>
   <div id="status">Tap the orb and say hello</div>
   <div id="sub">Ask about any piece in the showroom – prices, sizes, colours, offers – or book a free consultation.</div>
+  <div id="cards"></div>
   <button id="end" type="button" hidden>End conversation</button>
 </main>
 <div class="foot">You're talking to Domestica's AI assistant. Conversations are recorded to improve our service.</div>
@@ -50,9 +64,57 @@ body.listening #orb .core,body.speaking #orb .core{animation:none}
 import { Conversation } from "https://cdn.jsdelivr.net/npm/@elevenlabs/client/+esm";
 const AGENT = "agent_1701m7cvpgtbfz6t8dc4thm38y4z";
 const $ = id => document.getElementById(id);
+let CAT = [];
+const norm = t => String(t||"").toLowerCase().replace(/[–—-]/g," ").replace(/[^a-z0-9à-ÿ ]/g," ").replace(/\s+/g," ").trim();
+(async () => {
+  try {
+    for (let p = 1; p <= 8; p++) {
+      const r = await fetch("https://www.domestica.com.mt/products.json?limit=250&page=" + p);
+      const j = await r.json(); const ps = j.products || [];
+      for (const x of ps) {
+        if (x.product_type === "Bespoke Components") continue;
+        const v = x.variants || []; const pr = Math.min(...v.map(a => +a.price || 0));
+        const cmp = Math.max(0, ...v.map(a => +a.compare_at_price || 0));
+        CAT.push({ t: x.title, n: norm(x.title), h: x.handle, img: (x.images && x.images[0] && x.images[0].src) || "", price: pr, was: cmp > pr ? cmp : 0, avail: v.some(a => a.available) });
+      }
+      if (ps.length < 250) break;
+    }
+  } catch (e) { console.warn("catalogue", e); }
+})();
+function best(name){
+  const q = norm(name); if (!q) return null; const qt = q.split(" ");
+  let top = null, sc = 0;
+  for (const c of CAT) {
+    if (c.n === q) return c;
+    const ct = c.n.split(" "); let hit = 0; for (const w of qt) if (ct.includes(w)) hit++;
+    const s = hit / Math.max(qt.length, ct.length) + (c.n.includes(q) ? .3 : 0) + (c.avail ? .05 : 0);
+    if (s > sc) { sc = s; top = c; }
+  }
+  return sc >= .45 ? top : null;
+}
+const eur = n => "€" + Number(n).toLocaleString("en-IE", { maximumFractionDigits: 2 });
+function showProducts({ names }){
+  const box = $("cards"); box.textContent = "";
+  const seen = new Set();
+  String(names||"").split(/[|;\n]/).slice(0,3).forEach(nm => {
+    const c = best(nm); if (!c || seen.has(c.h)) return; seen.add(c.h);
+    const d = document.createElement("div"); d.className = "pc";
+    if (c.img) { const i = document.createElement("img"); i.src = c.img.replace(/(\.[a-z]+)(\?|$)/i, "$1$2") + (c.img.includes("?") ? "&" : "?") + "width=600"; i.alt = c.t; d.appendChild(i); }
+    const b = document.createElement("div"); b.className = "b";
+    const t = document.createElement("div"); t.className = "t"; t.textContent = c.t; b.appendChild(t);
+    const p = document.createElement("div"); p.className = "p"; p.textContent = c.price ? eur(c.price) : "Price on request";
+    if (c.was) { const w = document.createElement("s"); w.textContent = eur(c.was); p.appendChild(w); }
+    b.appendChild(p);
+    if (c.was) { const g = document.createElement("span"); g.className = "d"; g.textContent = "BLACK NOVEMBER"; b.appendChild(g); }
+    d.appendChild(b); box.appendChild(d);
+  });
+  document.body.classList.toggle("has-cards", !!box.children.length);
+  return box.children.length ? "shown" : "not found";
+}
+window.__dom = { showProducts, cat: () => CAT.length };
 let conv = null, raf = 0, idleTimer = 0;
 const src = new URLSearchParams(location.search).get("src") || "direct";
-function setState(s, txt){ document.body.className = s; if (txt != null) $("status").textContent = txt; }
+function setState(s, txt){ const hc = document.body.classList.contains("has-cards"); document.body.className = s; if (hc) document.body.classList.add("has-cards"); if (txt != null) $("status").textContent = txt; }
 function loop(){
   if (!conv) return;
   let v = 0;
@@ -66,7 +128,7 @@ function reset(msg){
   setState("", msg || "Tap the orb and say hello");
   $("end").hidden = true;
   clearTimeout(idleTimer);
-  idleTimer = setTimeout(() => { $("sub").textContent = "Ask about any piece in the showroom – prices, sizes, colours, offers – or book a free consultation."; }, 8000);
+  idleTimer = setTimeout(() => { $("cards").textContent = ""; document.body.classList.remove("has-cards"); $("sub").textContent = "Ask about any piece in the showroom – prices, sizes, colours, offers – or book a free consultation."; }, 8000);
 }
 async function start(){
   if (conv) return;
@@ -78,6 +140,7 @@ async function start(){
       agentId: AGENT,
       connectionType: "webrtc",
       dynamicVariables: { source: src },
+      clientTools: { show_products: showProducts },
       onConnect: () => { $("end").hidden = false; loop(); },
       onDisconnect: () => reset("Thanks for visiting Domestica"),
       onError: (e) => { console.error(e); reset("Sorry, something went wrong – tap to try again"); },
