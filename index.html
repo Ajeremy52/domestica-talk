@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Talk to Domestica</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--g1:#bff3d6;--g2:#5fc79a;--g3:#1f6f53;--bg:#0b1713}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:radial-gradient(ellipse at 50% 35%,#163a2d 0%,var(--bg) 62%);color:#eef6f1;font-family:Inter,system-ui,sans-serif;-webkit-tap-highlight-color:transparent;overflow:hidden}
+main{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4vh;padding:env(safe-area-inset-top) 20px env(safe-area-inset-bottom);text-align:center}
+.brand{font-weight:700;letter-spacing:.5em;font-size:clamp(14px,2vw,22px);color:#9fe0b8;margin-right:-.5em}
+#orb{position:relative;width:min(56vmin,420px);aspect-ratio:1;border:0;background:none;padding:0;cursor:pointer}
+#orb .core{position:absolute;inset:15%;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--g1) 0%,var(--g2) 38%,var(--g3) 72%,#0d2a20 100%);box-shadow:0 0 0 3px rgba(191,243,214,.2),0 20px 80px rgba(31,111,83,.6);transform:scale(calc(.9 + var(--lvl,0)*.18));transition:transform .08s linear;animation:breath 4.5s ease-in-out infinite}
+#orb .core:after{content:"";position:absolute;inset:-6%;border-radius:50%;border:3px solid rgba(127,224,174,.45);animation:ring 4.5s ease-in-out infinite}
+#orb svg{position:absolute;inset:0;width:100%;height:100%;animation:spin 18s linear infinite;pointer-events:none}
+#orb svg text{font:700 9.5px/1 Inter,system-ui;letter-spacing:4.2px;fill:#e9fff3}
+#orb .lt{animation:letters 4.5s ease-in-out infinite;transform-origin:46px 46px}
+body.listening #orb svg{animation-duration:7s}
+body.speaking #orb svg{animation-duration:4s}
+body.connecting #orb svg{animation-duration:1.5s}
+body.listening #orb .core,body.speaking #orb .core{animation:none}
+@keyframes breath{0%,100%{transform:scale(.9)}50%{transform:scale(1)}}
+@keyframes ring{0%,100%{transform:scale(.94);opacity:.25}50%{transform:scale(1.08);opacity:.8}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes letters{0%,100%{transform:scale(.86);opacity:.35}50%{transform:scale(1.04);opacity:1}}
+#status{font-size:clamp(18px,2.6vw,30px);font-weight:600;min-height:1.4em}
+#sub{max-width:min(900px,92vw);font-size:clamp(16px,2.1vw,26px);line-height:1.45;color:#cfe9dc;min-height:3em}
+#sub .you{color:#9fe0b8}
+#end{border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.25);color:#fff;border-radius:999px;padding:12px 26px;font:600 16px Inter,system-ui;cursor:pointer}
+#end[hidden]{display:none}
+.foot{position:fixed;bottom:max(14px,env(safe-area-inset-bottom));left:0;right:0;font-size:12px;color:#7f958b}
+</style>
+</head>
+<body>
+<main>
+  <div class="brand">DOMESTICA</div>
+  <button id="orb" type="button" aria-label="Tap to talk to Domestica">
+    <div class="core"></div>
+    <svg viewBox="0 0 92 92" aria-hidden="true"><defs><path id="c" d="M46,46 m-37,0 a37,37 0 1,1 74,0 a37,37 0 1,1 -74,0"/></defs><g class="lt"><text><textPath href="#c">DOMESTICA · DOMESTICA · </textPath></text></g></svg>
+  </button>
+  <div id="status">Tap the orb and say hello</div>
+  <div id="sub">Ask about any piece in the showroom – prices, sizes, colours, offers – or book a free consultation.</div>
+  <button id="end" type="button" hidden>End conversation</button>
+</main>
+<div class="foot">You're talking to Domestica's AI assistant. Conversations are recorded to improve our service.</div>
+<script type="module">
+import { Conversation } from "https://cdn.jsdelivr.net/npm/@elevenlabs/client/+esm";
+const AGENT = "agent_1701m7cvpgtbfz6t8dc4thm38y4z";
+const $ = id => document.getElementById(id);
+let conv = null, raf = 0, idleTimer = 0;
+const src = new URLSearchParams(location.search).get("src") || "direct";
+function setState(s, txt){ document.body.className = s; if (txt != null) $("status").textContent = txt; }
+function loop(){
+  if (!conv) return;
+  let v = 0;
+  try { v = document.body.classList.contains("speaking") ? conv.getOutputVolume() : conv.getInputVolume(); } catch(e){}
+  document.documentElement.style.setProperty("--lvl", Math.min(1, v * 2.5).toFixed(3));
+  raf = requestAnimationFrame(loop);
+}
+function reset(msg){
+  cancelAnimationFrame(raf); conv = null;
+  document.documentElement.style.setProperty("--lvl", 0);
+  setState("", msg || "Tap the orb and say hello");
+  $("end").hidden = true;
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => { $("sub").textContent = "Ask about any piece in the showroom – prices, sizes, colours, offers – or book a free consultation."; }, 8000);
+}
+async function start(){
+  if (conv) return;
+  setState("connecting", "Connecting…");
+  $("sub").textContent = "";
+  try {
+    await navigator.mediaDevices.getUserMedia({ audio: true });
+    conv = await Conversation.startSession({
+      agentId: AGENT,
+      connectionType: "webrtc",
+      onConnect: () => { $("end").hidden = false; loop(); },
+      onDisconnect: () => reset("Thanks for visiting Domestica"),
+      onError: (e) => { console.error(e); reset("Sorry, something went wrong – tap to try again"); },
+      onModeChange: ({ mode }) => setState(mode === "speaking" ? "speaking" : "listening", mode === "speaking" ? "Domestica is speaking…" : "Listening…"),
+      onMessage: ({ message, source }) => {
+        const el = $("sub"); el.textContent = "";
+        if (source === "user") { const s = document.createElement("span"); s.className = "you"; s.textContent = "You: " + message; el.appendChild(s); }
+        else el.textContent = message;
+      }
+    });
+  } catch (e) {
+    console.error(e);
+    reset(e && e.name === "NotAllowedError" ? "Please allow the microphone, then tap the orb" : "Couldn't connect – tap to try again");
+  }
+}
+$("orb").addEventListener("click", () => { conv ? conv.endSession() : start(); });
+$("end").addEventListener("click", () => conv && conv.endSession());
+</script>
+</body>
+</html>
