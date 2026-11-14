@@ -3,7 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Talk to Domestica</title>
+<title>Domestica</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0b1713">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Domestica">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="favicon.png">
+<meta name="description" content="Domestica showroom assistant">
+
 <meta name="robots" content="noindex,nofollow">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -156,7 +166,8 @@ async function start(){
     reset(e && e.name === "NotAllowedError" ? "Please allow the microphone, then tap the orb" : "Couldn't connect – tap to try again");
   }
 }
-$("orb").addEventListener("click", () => { conv ? conv.endSession() : start(); });
+$("orb").addEventListener("click", () => {
+  if (new URLSearchParams(location.search).get("kiosk") === "1" && !document.fullscreenElement) { try { document.documentElement.requestFullscreen(); } catch(e){} } conv ? conv.endSession() : start(); });
 $("end").addEventListener("click", () => conv && conv.endSession());
 </script>
 </body>
