@@ -77,6 +77,7 @@ async function start(){
     conv = await Conversation.startSession({
       agentId: AGENT,
       connectionType: "webrtc",
+      dynamicVariables: { source: src },
       onConnect: () => { $("end").hidden = false; loop(); },
       onDisconnect: () => reset("Thanks for visiting Domestica"),
       onError: (e) => { console.error(e); reset("Sorry, something went wrong – tap to try again"); },
