@@ -123,6 +123,28 @@ function showProducts({ names }){
 }
 window.__dom = { showProducts, cat: () => CAT.length };
 let conv = null, raf = 0, idleTimer = 0, starting = false;
+// Wake word: say "Domestica" (like "Hey Siri") to start, on the showroom screen (?kiosk=1) or with ?wake=1
+const QS = new URLSearchParams(location.search);
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const WAKE = !!SR && (QS.get("kiosk") === "1" || QS.get("wake") === "1");
+const IDLE_TXT = WAKE ? "Say \u201cDomestica\u201d or tap the orb" : "Tap the orb and say hello";
+let rec = null, recOn = false;
+function wakeStop(){ recOn = false; if (rec) { try { rec.abort(); } catch(e){} } }
+function wakeListen(){
+  if (!WAKE || conv || starting || recOn || document.hidden) return;
+  if (!rec) {
+    rec = new SR(); rec.continuous = true; rec.interimResults = true; rec.lang = "en-GB";
+    rec.onresult = (ev) => {
+      for (let i = ev.resultIndex; i < ev.results.length; i++) {
+        const t = ev.results[i][0].transcript.toLowerCase();
+        if (/dome?stic+[ae]|domestika|domestic a\b/.test(t)) { wakeStop(); start(); return; }
+      }
+    };
+    rec.onend = () => { const was = recOn; recOn = false; if (was) setTimeout(wakeListen, 400); };
+    rec.onerror = (e) => { if (e.error === "not-allowed") { recOn = false; rec = null; } };
+  }
+  try { rec.start(); recOn = true; } catch(e) { recOn = false; }
+}
 const src = new URLSearchParams(location.search).get("src") || "direct";
 function setState(s, txt){ const hc = document.body.classList.contains("has-cards"); document.body.className = s; if (hc) document.body.classList.add("has-cards"); if (txt != null) $("status").textContent = txt; }
 function loop(){
@@ -135,14 +157,15 @@ function loop(){
 function reset(msg){
   cancelAnimationFrame(raf); conv = null;
   document.documentElement.style.setProperty("--lvl", 0);
-  setState("", msg || "Tap the orb and say hello");
+  setState("", msg || IDLE_TXT);
+  setTimeout(wakeListen, 1500);
   $("end").hidden = true;
   clearTimeout(idleTimer);
   idleTimer = setTimeout(() => { $("cards").textContent = ""; document.body.classList.remove("has-cards"); $("sub").textContent = "Ask about any piece in the showroom – prices, sizes, colours, offers – or book a free consultation."; }, 8000);
 }
 async function start(){
   if (conv || starting) return;
-  starting = true;
+  starting = true; wakeStop();
   setState("connecting", "Connecting…");
   $("sub").textContent = "";
   try {
@@ -172,6 +195,8 @@ $("orb").addEventListener("click", () => {
 $("end").addEventListener("click", () => conv && conv.endSession());
 // Save credits: stop the call when the visitor leaves the page or locks the phone
 document.addEventListener("visibilitychange", () => { if (document.hidden && conv) { try { conv.endSession(); } catch(e){} } });
+document.addEventListener("visibilitychange", () => { if (document.hidden) wakeStop(); else wakeListen(); });
+if (WAKE) { $("status").textContent = IDLE_TXT; navigator.mediaDevices.getUserMedia({ audio: true }).then(st => { st.getTracks().forEach(t => t.stop()); wakeListen(); }).catch(() => {}); }
 window.addEventListener("pagehide", () => { if (conv) { try { conv.endSession(); } catch(e){} } });
 </script>
 </body>
