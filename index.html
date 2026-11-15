@@ -263,8 +263,10 @@ function manageList({ action, items, names }){
   });
   return (done.length ? (action === "remove" ? "Removed: " : "Added: ") + done.join("; ") + ". " : "") + (miss.length ? "Could not add: " + miss.join("; ") + ". " : "") + listSummary();
 }
-function showProducts({ items, names }){
+function showProducts({ items, names, clear }){
   const box = $("cards");
+  const want = entries(items, names);
+  if (clear || !want.length) { box.textContent = ""; document.body.classList.remove("has-cards", "multi"); return "The screen is now clear; no products are shown."; }
   const seen = new Set(), missing = [], picks = [];
   entries(items, names).slice(0,3).forEach(e => {
     const { c, q: q0, nm } = resolve(e); if (!c) { missing.push(nm); return; } if (seen.has(c.h + c.vid)) return; seen.add(c.h + c.vid); picks.push([c, q0]);
