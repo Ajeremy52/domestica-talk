@@ -98,6 +98,17 @@ body.kiosk.has-cards #sub{font-size:clamp(18px,1.6vw,28px)}
 @media (max-height:500px){.foot{display:none} #orb{width:min(40vmin,260px)} main{gap:2vh}}
 @media (max-width:700px){.pc{width:min(78vw,320px)} body.has-cards #cards{flex-direction:column;align-items:center}}
 #orb{transition:width .4s ease}
+#privacy{position:fixed;inset:0;z-index:50;background:rgba(10,20,16,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+#privacy[hidden]{display:none}
+.pv-card{background:#fff;color:#1d2b25;max-width:520px;width:100%;max-height:88vh;overflow:auto;border-radius:16px;padding:20px 22px;text-align:left;font-size:14px;line-height:1.45;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+.pv-card h2{margin:0 0 10px;font-size:19px}
+.pv-card ul{margin:0;padding-left:18px}.pv-card li{margin:0 0 8px}
+.pv-more a,.foot a{color:inherit;text-decoration:underline}
+.pv-btns{display:flex;gap:10px;justify-content:flex-end;margin-top:14px}
+.pv-btns button{font:inherit;padding:10px 16px;border-radius:10px;border:1px solid #c9d4cf;background:#fff;cursor:pointer}
+#pv-ok{background:#1f4d3d;color:#fff;border-color:#1f4d3d}
+.kio-only{display:none}body.kiosk .kio-only{display:inline}
+.foot{text-align:center;padding:0 12px}body.kiosk .foot{font-size:15px}
 </style>
 </head>
 <body>
@@ -114,7 +125,22 @@ body.kiosk.has-cards #sub{font-size:clamp(18px,1.6vw,28px)}
   <button id="end" type="button" hidden>End conversation</button>
 </main>
 <div id="tray" hidden></div>
-<div class="foot">You're talking to Domestica's AI assistant. Conversations are recorded to improve our service.</div>
+<div class="foot"><span class="kio-only">This screen listens only for the word “Domestica” – nothing is recorded until a chat starts. </span>You're talking to Domestica's AI assistant. Chats are recorded. <a id="pv-link" href="#">Privacy</a></div>
+<div id="privacy" role="dialog" aria-modal="true" aria-labelledby="pv-h" hidden>
+  <div class="pv-card">
+    <h2 id="pv-h">Before we start</h2>
+    <ul>
+      <li><b>Microphone:</b> used only while a chat is on. It switches off when you tap the orb again, press “End conversation” or leave this page.</li>
+      <li><b>Recording:</b> the chat (your voice and a written transcript) is recorded so we can follow up on your request and improve the assistant.</li>
+      <li><b>Who handles it:</b> Domestica Ltd. The voice is run for us by our AI voice provider, ElevenLabs, which processes the chat on our behalf.</li>
+      <li><b>How long:</b> recordings are deleted after 90 days. Details you choose to give (name, phone, email) are kept as an enquiry, as described in our privacy policy.</li>
+      <li><b>Showroom screen:</b> it listens only for the word “Domestica” to wake up. Nothing is recorded or stored until a chat starts.</li>
+      <li>Please don’t share card numbers or other sensitive details. To see or delete your data, contact us using the details in our privacy policy.</li>
+    </ul>
+    <p class="pv-more"><a href="https://www.domestica.com.mt/policies/privacy-policy" target="_blank" rel="noopener">Read our privacy policy</a></p>
+    <div class="pv-btns"><button id="pv-no" type="button">Not now</button><button id="pv-ok" type="button">Agree and start</button></div>
+  </div>
+</div>
 <script type="module">
 let Conversation = null, QRCode = null;
 const loadSDK = () => Conversation ? Promise.resolve(Conversation) : import("https://cdn.jsdelivr.net/npm/@elevenlabs/client/+esm").then(m => (Conversation = m.Conversation));
@@ -123,7 +149,7 @@ loadSDK().catch(() => {}); loadQR().catch(() => {});
 const AGENT = "agent_1801m7dts975e2hv3zhqz9bn7z0m";
 const $ = id => document.getElementById(id);
 const SITE_ = "https://www.domestica.com.mt";
-let CAT = [];
+let CAT = [], BYH = new Map(), BYV = new Map();
 const norm = t => String(t||"").toLowerCase().replace(/[–—-]/g," ").replace(/[^a-z0-9à-ÿ ]/g," ").replace(/\s+/g," ").trim();
 (async () => {
   try {
@@ -136,7 +162,8 @@ const norm = t => String(t||"").toLowerCase().replace(/[–—-]/g," ").replace(
         const cmp = Math.max(0, ...v.map(a => +a.compare_at_price || 0));
         const img0 = (x.images && x.images[0] && x.images[0].src) || "";
         const vs = v.map(a => ({ id: a.id, t: (a.title === "Default Title" ? "" : a.title), n: norm(a.title === "Default Title" ? "" : a.title), price: +a.price || 0, was: (+a.compare_at_price > +a.price ? +a.compare_at_price : 0), avail: !!a.available, img: (a.featured_image && a.featured_image.src) || img0 }));
-        CAT.push({ t: x.title, n: norm(x.title), h: x.handle, img: img0, price: pr, was: cmp > pr ? cmp : 0, avail: v.some(a => a.available), vid: ((v.find(a => a.available) || v[0] || {}).id) || 0, vs });
+        const item = { t: x.title, n: norm(x.title), h: x.handle, img: img0, price: pr, was: cmp > pr ? cmp : 0, avail: v.some(a => a.available), vid: ((v.find(a => a.available) || v[0] || {}).id) || 0, vs };
+        CAT.push(item); BYH.set(x.handle, item); vs.forEach(a => BYV.set(String(a.id), item));
       }
       if (ps.length < 250) break;
     }
@@ -152,6 +179,32 @@ function best(name){
     if (s > sc) { sc = s; top = c; }
   }
   return sc >= .45 ? top : null;
+}
+// Exact lookup first: the assistant passes the product's ref (its Shopify handle, from the catalogue) and the
+// exact option name. Only if that fails do we fall back to matching by name.
+function resolve(e){
+  if (e && typeof e === "object") {
+    const ref = String(e.ref || e.handle || "").trim().toLowerCase().replace(/^.*\/products\//, "").replace(/[?#].*$/, "");
+    const opt = String(e.option || e.colour || e.color || "").trim();
+    const q = Math.max(1, Math.min(50, parseInt(e.qty || e.quantity || 1, 10) || 1));
+    let c = BYH.get(ref) || BYV.get(ref) || null, how = "ref";
+    if (!c) { c = best(String(e.name || ref).replace(/-/g, " ")); how = "name"; }
+    if (!c) return { c: null, q, nm: e.name || ref || "?" };
+    let vp = 0;
+    if (BYV.get(ref) === c) vp = +ref;
+    else if (opt) { const o = norm(opt); const hit = (c.vs || []).find(x => x.n === o); if (hit) vp = hit.id; }
+    return { c: view(c, opt, vp), q, nm: e.name || ref, how };
+  }
+  const raw = String(e || "").trim();
+  let q = 1; const mq = raw.match(/\s*[x×]\s*(\d{1,2})\s*$/i); const nm = mq ? raw.slice(0, mq.index) : raw; if (mq) q = Math.max(1, Math.min(50, +mq[1]));
+  const m = nm.match(/^ref:\s*([a-z0-9-]+)\s*(?:[|(]\s*([^)]*?)\s*\)?)?$/i);   // "ref:handle | option" written as text
+  if (m) return resolve({ ref: m[1], option: m[2] || "", qty: q });
+  return { c: view(best(nm), nm), q, nm, how: "name" };
+}
+function entries(items, names){
+  if (Array.isArray(items) && items.length) return items;
+  if (typeof items === "string" && items.trim()) { try { const j = JSON.parse(items); if (Array.isArray(j)) return j; } catch(e){} }
+  return (Array.isArray(names) ? names : String(names || "").split(/[|;\n]/)).map(x => String(x).trim()).filter(Boolean);
 }
 function view(c, raw, vidPick){
   if (!c) return null;
@@ -198,26 +251,23 @@ function renderTray(){
     tr.appendChild(go);
   }
 }
-function manageList({ action, names }){
+function manageList({ action, items, names }){
   if (action === "clear") { LIST = []; saveList(); renderTray(); return "The list is now empty."; }
   if (action === "show") { $("tray") && $("tray").classList.add("open"); return listSummary(); }
-  const arr = (Array.isArray(names) ? names : String(names || "").split(/[|;\n]/)).map(x => String(x).trim()).filter(Boolean);
   const done = [], miss = [];
-  arr.forEach(raw => {
-    let q = 1; const mq = raw.match(/\s*[x×]\s*(\d{1,2})\s*$/i); const nm = mq ? raw.slice(0, mq.index) : raw; if (mq) q = Math.max(1, Math.min(50, +mq[1]));
-    const c = view(best(nm), nm); if (!c) { miss.push(nm); return; }
+  entries(items, names).forEach(e => {
+    const { c, q, nm } = resolve(e); if (!c) { miss.push(nm); return; }
     if (action === "remove") { const hit = LIST.find(x => x.id === c.vid) || LIST.find(x => x.t.startsWith(c.t)); if (hit) { listRemove(hit.id); done.push(hit.t); } else miss.push(c.label + " (not in the list)"); return; }
     if (!(c.price && c.avail && c.vid)) { miss.push(c.label + " (not sold online, a salesperson can help)"); return; }
     listAdd(c, q); done.push(c.label + (q > 1 ? " x" + q : ""));
   });
   return (done.length ? (action === "remove" ? "Removed: " : "Added: ") + done.join("; ") + ". " : "") + (miss.length ? "Could not add: " + miss.join("; ") + ". " : "") + listSummary();
 }
-function showProducts({ names }){
+function showProducts({ items, names }){
   const box = $("cards");
   const seen = new Set(), missing = [], picks = [];
-  (Array.isArray(names) ? names : String(names||"").split(/[|;\n]/)).map(x=>String(x).trim()).filter(Boolean).slice(0,3).forEach(raw => {
-    let q0 = 1; const mq = raw.match(/\s*[x×]\s*(\d{1,2})\s*$/i); const nm = mq ? raw.slice(0, mq.index) : raw; if (mq) q0 = Math.max(1, Math.min(50, +mq[1]));
-    const c = view(best(nm), nm); if (!c) { missing.push(nm); return; } if (seen.has(c.h + c.vid)) return; seen.add(c.h + c.vid); picks.push([c, q0]);
+  entries(items, names).slice(0,3).forEach(e => {
+    const { c, q: q0, nm } = resolve(e); if (!c) { missing.push(nm); return; } if (seen.has(c.h + c.vid)) return; seen.add(c.h + c.vid); picks.push([c, q0]);
   });
   if (!picks.length) return CAT.length ? "Nothing new shown; the screen still shows the previous products. Not found: " + missing.join("; ") : "The product photos are not available right now; describe the products in words.";
   box.textContent = "";
@@ -326,90 +376,133 @@ function showLink({ kind }){
   return "Now on the screen: " + title + " (" + sub + ") with a '" + (KIOSK ? "scan this code" : btn) + "' " + (KIOSK ? "QR code" : "button") + ".";
 }
 window.__dom = { showProducts, showLink, manageList, cat: () => CAT.length };
-let conv = null, raf = 0, idleTimer = 0, starting = false;
-// Wake word: say "Domestica" (like "Hey Siri") to start, on the showroom screen (?kiosk=1) or with ?wake=1
-const QS = new URLSearchParams(location.search);
-const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-const WAKE = !!SR && (QS.get("kiosk") === "1" || QS.get("wake") === "1");
-const IDLE_TXT = WAKE ? "Say \u201cDomestica\u201d or tap the orb" : "Tap the orb and say hello";
-let rec = null, recOn = false;
-function wakeStop(){ recOn = false; if (rec) { try { rec.abort(); } catch(e){} } }
-function wakeListen(){
-  if (!WAKE || conv || starting || recOn || document.hidden) return;
-  if (!rec) {
-    rec = new SR(); rec.continuous = true; rec.interimResults = true; rec.lang = "en-GB";
-    rec.onresult = (ev) => {
-      for (let i = ev.resultIndex; i < ev.results.length; i++) {
-        const t = ev.results[i][0].transcript.toLowerCase();
-        if (/dome?stic+[ae]|domestika|domestic a\b/.test(t)) { wakeStop(); start(); return; }
-      }
-    };
-    rec.onend = () => { const was = recOn; recOn = false; if (was) setTimeout(wakeListen, 400); };
-    rec.onerror = (e) => { if (e.error === "not-allowed") { recOn = false; rec = null; } };
-  }
-  try { rec.start(); recOn = true; } catch(e) { recOn = false; }
-}
+// ---- Session state: one object, one phase, and a session id so late callbacks from an old chat are ignored ----
+// phase: "idle" -> "starting" -> "live" -> back to "idle"
+const S = { phase: "idle", conv: null, id: 0, raf: 0, idleTimer: 0, connTimer: 0, wakeTimer: 0 };
+const busy = () => S.phase !== "idle";
 const _q = new URLSearchParams(location.search);
 const KIOSK = _q.get("kiosk") === "1";
 const SRC = _q.get("src") || (KIOSK ? "screen" : (/domestica\.com\.mt/.test(document.referrer) ? "website" : "direct"));
 if (KIOSK) document.body.classList.add("kiosk");
 const DEVICE = KIOSK ? "showroom screen" : (/Mobi|Android|iPhone/i.test(navigator.userAgent) ? "phone" : "computer");
 const src = SRC;
+// Wake word: say "Domestica" (like "Hey Siri") to start, on the showroom screen (?kiosk=1) or with ?wake=1
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const WAKE = !!SR && (KIOSK || _q.get("wake") === "1");
+const IDLE_TXT = WAKE ? "Say “Domestica” or tap the orb" : "Tap the orb and say hello";
+let rec = null, recOn = false;
+function wakeStop(){ clearTimeout(S.wakeTimer); recOn = false; if (rec) { try { rec.abort(); } catch(e){} } }
+function wakeListen(){
+  clearTimeout(S.wakeTimer);
+  if (!WAKE || busy() || recOn || document.hidden || (!KIOSK && !hasConsent())) return;
+  if (!rec) {
+    rec = new SR(); rec.continuous = true; rec.interimResults = true; rec.lang = "en-GB";
+    try { if ("processLocally" in rec) rec.processLocally = true; } catch(e){}   // on-device recognition where the browser offers it
+    rec.onresult = (ev) => {
+      if (busy()) return;
+      for (let i = ev.resultIndex; i < ev.results.length; i++) {
+        const t = ev.results[i][0].transcript.toLowerCase();
+        if (/dome?stic+[ae]|domestika|domestic a\b/.test(t)) { wakeStop(); start(); return; }
+      }
+    };
+    rec.onend = () => { const was = recOn; recOn = false; if (was && !busy()) S.wakeTimer = setTimeout(wakeListen, 400); };
+    rec.onerror = (e) => {
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") { recOn = false; rec = null; }
+      else if (e.error === "language-not-supported" && rec && rec.processLocally) { rec.processLocally = false; }
+    };
+  }
+  try { rec.start(); recOn = true; } catch(e) { recOn = false; }
+}
 function setState(s, txt){ const hc = document.body.classList.contains("has-cards"), mu = document.body.classList.contains("multi"); document.body.className = s; if (hc) document.body.classList.add("has-cards"); if (mu) document.body.classList.add("multi"); if (KIOSK) document.body.classList.add("kiosk"); if (LIST.length) document.body.classList.add("has-tray"); if (txt != null) $("status").textContent = txt; }
 function loop(){
-  if (!conv) return;
+  if (S.phase !== "live" || !S.conv) return;
   let v = 0;
-  try { v = document.body.classList.contains("speaking") ? conv.getOutputVolume() : conv.getInputVolume(); } catch(e){}
+  try { v = document.body.classList.contains("speaking") ? S.conv.getOutputVolume() : S.conv.getInputVolume(); } catch(e){}
   document.documentElement.style.setProperty("--lvl", Math.min(1, v * 2.5).toFixed(3));
-  raf = requestAnimationFrame(loop);
+  S.raf = requestAnimationFrame(loop);
 }
-function reset(msg){
-  cancelAnimationFrame(raf); conv = null;
+const MSG_DOWN = "The assistant isn't available right now – please ask anyone at the front desk";
+// The single way a chat ends, whatever caused it (button, error, disconnect, timeout, leaving the page)
+function finish(id, msg){
+  if (id !== S.id || S.phase === "idle") return;          // stale callback from an older chat
+  const c = S.conv;
+  S.id++; S.phase = "idle"; S.conv = null;                // any later callback from this chat is now ignored
+  clearTimeout(S.connTimer); cancelAnimationFrame(S.raf);
+  if (c) { try { c.endSession(); } catch(e){} }           // releases the microphone
   document.documentElement.style.setProperty("--lvl", 0);
   setState("", msg || IDLE_TXT);
-  setTimeout(wakeListen, 1500);
   $("end").hidden = true;
-  clearTimeout(idleTimer);
-  idleTimer = setTimeout(() => { if (KIOSK) { LIST = []; saveList(); renderTray(); } $("cards").textContent = ""; document.body.classList.remove("has-cards", "multi"); $("sub").textContent = "Ask about any piece in the showroom – prices, sizes, colours, offers – or book a free consultation."; }, KIOSK ? 45000 : 8000);
+  clearTimeout(S.idleTimer);
+  S.idleTimer = setTimeout(() => { if (KIOSK) { LIST = []; saveList(); renderTray(); } $("cards").textContent = ""; document.body.classList.remove("has-cards", "multi"); $("sub").textContent = "Ask about any piece in the showroom – prices, sizes, colours, offers – or book a free consultation."; }, KIOSK ? 45000 : 8000);
+  S.wakeTimer = setTimeout(wakeListen, 1500);
 }
+const stop = (msg) => finish(S.id, msg || "Thanks for visiting Domestica");
 async function start(){
-  if (conv || starting) return;
-  starting = true; wakeStop();
+  if (busy()) return;
+  const id = ++S.id; S.phase = "starting";
+  wakeStop(); clearTimeout(S.idleTimer);
   setState("connecting", "Connecting…");
   $("sub").textContent = "";
+  S.connTimer = setTimeout(() => finish(id, MSG_DOWN), 20000);   // never hang on "Connecting…"
   try {
-    await navigator.mediaDevices.getUserMedia({ audio: true });
+    // Ask for the microphone first (clear message if refused), then hand it back - the SDK opens its own stream
+    const probe = await navigator.mediaDevices.getUserMedia({ audio: true });
+    probe.getTracks().forEach(t => t.stop());
+    if (id !== S.id) return;
     await loadSDK();
-    conv = await Conversation.startSession({
+    if (id !== S.id) return;
+    const guard = (fn) => (...a) => { if (id === S.id) fn(...a); };
+    const c = await Conversation.startSession({
       agentId: AGENT,
       connectionType: "webrtc",
       dynamicVariables: { source: src, device: DEVICE },
       clientTools: { show_products: showProducts, show_link: showLink, manage_list: manageList },
-      onConnect: () => { $("end").hidden = false; loop(); },
-      onDisconnect: (d) => reset(d && d.reason === "error" ? "The assistant isn't available right now – please ask anyone at the front desk" : "Thanks for visiting Domestica"),
-      onError: (e) => { console.error(e); reset("Sorry, something went wrong – tap to try again"); },
-      onModeChange: ({ mode }) => setState(mode === "speaking" ? "speaking" : "listening", mode === "speaking" ? "Domestica is speaking…" : "Listening…"),
-      onMessage: ({ message, source }) => {
+      onDisconnect: guard((d) => finish(id, d && d.reason === "error" ? MSG_DOWN : "Thanks for visiting Domestica")),
+      onError: guard((e) => { console.error(e); finish(id, "Sorry, something went wrong – tap to try again"); }),
+      onModeChange: guard(({ mode }) => { if (S.phase === "live") setState(mode === "speaking" ? "speaking" : "listening", mode === "speaking" ? "Domestica is speaking…" : "Listening…"); }),
+      onMessage: guard(({ message, source }) => {
         const el = $("sub"); el.textContent = "";
         if (source === "user") { const s = document.createElement("span"); s.className = "you"; s.textContent = "You: " + message; el.appendChild(s); }
         else el.textContent = message;
         el.scrollTop = el.scrollHeight;
-      }
+      })
     });
+    if (id !== S.id || S.phase !== "starting") { try { c.endSession(); } catch(e){} return; }  // cancelled or timed out meanwhile
+    S.conv = c; S.phase = "live"; clearTimeout(S.connTimer);
+    $("end").hidden = false; setState("listening", "Listening…"); loop();
   } catch (e) {
     console.error(e);
-    reset(e && e.name === "NotAllowedError" ? "Please allow the microphone, then tap the orb" : "The assistant isn't available right now – please ask anyone at the front desk");
-  } finally { starting = false; }
+    finish(id, e && e.name === "NotAllowedError" ? "Please allow the microphone, then tap the orb" : MSG_DOWN);
+  }
 }
+// ---- Privacy notice: shown before the microphone is used for the first time on a phone or computer ----
+const CONSENT_KEY = "domVoiceConsent1";
+let consentMem = false;
+function hasConsent(){ if (consentMem) return true; try { return localStorage.getItem(CONSENT_KEY) === "1"; } catch(e){ return false; } }
+function saveConsent(){ consentMem = true; try { localStorage.setItem(CONSENT_KEY, "1"); } catch(e){} }
+function showPrivacy(then){
+  const d = $("privacy"); d.hidden = false;
+  $("pv-ok").textContent = then ? "Agree and start" : "Close";
+  $("pv-no").hidden = !then;
+  $("pv-ok").onclick = () => { d.hidden = true; if (then) { saveConsent(); then(); } };
+  $("pv-no").onclick = () => { d.hidden = true; };
+  $("pv-ok").focus();
+}
+function begin(){ if (KIOSK || hasConsent()) start(); else showPrivacy(start); }
 $("orb").addEventListener("click", () => {
-  if (new URLSearchParams(location.search).get("kiosk") === "1" && !document.fullscreenElement) { try { document.documentElement.requestFullscreen(); } catch(e){} } if (starting) return; conv ? conv.endSession() : start(); });
-$("end").addEventListener("click", () => conv && conv.endSession());
-// Save credits: stop the call when the visitor leaves the page or locks the phone
-document.addEventListener("visibilitychange", () => { if (document.hidden && conv) { try { conv.endSession(); } catch(e){} } });
-document.addEventListener("visibilitychange", () => { if (document.hidden) wakeStop(); else wakeListen(); });
-if (WAKE) { $("status").textContent = IDLE_TXT; navigator.mediaDevices.getUserMedia({ audio: true }).then(st => { st.getTracks().forEach(t => t.stop()); wakeListen(); }).catch(() => {}); }
+  if (KIOSK && !document.fullscreenElement) { try { document.documentElement.requestFullscreen(); } catch(e){} }
+  if (S.phase === "starting") return;
+  if (S.phase === "live") stop(); else begin();
+});
+$("end").addEventListener("click", () => stop());
+$("pv-link").addEventListener("click", (e) => { e.preventDefault(); showPrivacy(null); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("privacy").hidden) $("privacy").hidden = true; });
+// Save credits and free the mic: stop the call when the visitor leaves the page or locks the phone
+document.addEventListener("visibilitychange", () => { if (document.hidden) { wakeStop(); if (busy()) stop(); } else wakeListen(); });
+window.addEventListener("pagehide", () => { wakeStop(); if (busy()) stop(); });
+if (WAKE) { $("status").textContent = IDLE_TXT; if (KIOSK || hasConsent()) navigator.mediaDevices.getUserMedia({ audio: true }).then(st => { st.getTracks().forEach(t => t.stop()); wakeListen(); }).catch(() => {}); }
 renderTray();
-window.addEventListener("pagehide", () => { if (conv) { try { conv.endSession(); } catch(e){} } });
+window.__dom.state = () => ({ phase: S.phase, id: S.id, wake: recOn });
 </script>
 </body>
 </html>
