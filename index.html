@@ -149,6 +149,7 @@ loadSDK().catch(() => {}); loadQR().catch(() => {});
 const AGENT = "agent_1801m7dts975e2hv3zhqz9bn7z0m";
 const $ = id => document.getElementById(id);
 const SITE_ = "https://www.domestica.com.mt";
+let SHOWN = [];
 let CAT = [], BYH = new Map(), BYV = new Map();
 const norm = t => String(t||"").toLowerCase().replace(/[–—-]/g," ").replace(/[^a-z0-9à-ÿ ]/g," ").replace(/\s+/g," ").trim();
 (async () => {
@@ -266,7 +267,7 @@ function manageList({ action, items, names }){
 function showProducts({ items, names, clear }){
   const box = $("cards");
   const want = entries(items, names);
-  if (clear || !want.length) { box.textContent = ""; document.body.classList.remove("has-cards", "multi"); return "The screen is now clear; no products are shown."; }
+  if (clear || !want.length) { SHOWN = []; box.textContent = ""; document.body.classList.remove("has-cards", "multi"); return "The screen is now clear; no products are shown."; }
   const seen = new Set(), missing = [], picks = [];
   entries(items, names).slice(0,3).forEach(e => {
     const { c, q: q0, nm } = resolve(e); if (!c) { missing.push(nm); return; } if (seen.has(c.h + c.vid)) return; seen.add(c.h + c.vid); picks.push([c, q0]);
@@ -332,6 +333,7 @@ function showProducts({ items, names, clear }){
   });
   document.body.classList.toggle("has-cards", !!box.children.length);
   const shownTxt = picks.map(([c, q]) => (c.label || c.t) + (q > 1 ? " x" + q : "") + (c.price ? " (" + eur(c.price) + ")" : " (price on request)")).join("; ");
+  SHOWN = picks.map(([c, q]) => (c.label || c.t) + (q > 1 ? " x" + q : "") + (c.h ? " [ref: " + c.h + "]" : ""));
   return "Now on the screen: " + shownTxt + "." + (missing.length ? " Not found: " + missing.join("; ") + "." : "");
 }
 const LINKS = {
@@ -351,14 +353,15 @@ const LINKS = {
   page_sofas: ["Sofas", "Egoitaliano made to order · ready-to-deliver online", "See sofas", SITE_ + "/pages/sofas"],
   page_home_packages: ["Home package", "Kitchen, TV unit, bedroom and sofa in one", "See the package", SITE_ + "/pages/home-packages"],
   page_contact: ["Contact & appointments", "Book a consultation or get in touch", "Open contact page", SITE_ + "/pages/contact"],
-  page_about: ["About Domestica", "Family makers since 1969", "Our story", SITE_ + "/pages/about-us"]
+  page_about: ["About Domestica", "Family makers since 1969", "Our story", SITE_ + "/pages/about-us"],
+  website: ["Domestica online shop", "www.domestica.com.mt", "Open the website", SITE_ + "/"]
 };
 function showLink({ kind }){
   const L = LINKS[kind]; if (!L) return "Unknown link type " + kind;
   const [title, sub, btn, href0] = L;
   const tag = /^https:\/\/www\.domestica/.test(href0) ? (href0.includes("?") ? "&" : "?") + "utm_source=showroom_assistant&utm_medium=" + encodeURIComponent(SRC) + "&utm_campaign=voice_assistant" : "";
   const href = href0 + tag;
-  const box = $("cards"); box.textContent = ""; document.body.classList.remove("multi");
+  const box = $("cards"); box.textContent = ""; SHOWN = []; document.body.classList.remove("multi");
   const d = document.createElement("div"); d.className = "pc lk";
   const b = document.createElement("div"); b.className = "b";
   const t = document.createElement("div"); t.className = "t"; t.textContent = title;
@@ -435,7 +438,7 @@ function finish(id, msg){
   setState("", msg || IDLE_TXT);
   $("end").hidden = true;
   clearTimeout(S.idleTimer);
-  S.idleTimer = setTimeout(() => { if (KIOSK) { LIST = []; saveList(); renderTray(); } $("cards").textContent = ""; document.body.classList.remove("has-cards", "multi"); $("sub").textContent = "Ask about any piece in the showroom – prices, sizes, colours, offers – or book a free consultation."; }, KIOSK ? 45000 : 8000);
+  S.idleTimer = setTimeout(() => { if (KIOSK) { LIST = []; saveList(); renderTray(); } SHOWN = []; $("cards").textContent = ""; document.body.classList.remove("has-cards", "multi"); $("sub").textContent = "Ask about any piece in the showroom – prices, sizes, colours, offers – or book a free consultation."; }, KIOSK ? 45000 : 8000);
   S.wakeTimer = setTimeout(wakeListen, 1500);
 }
 const stop = (msg) => finish(S.id, msg || "Thanks for visiting Domestica");
@@ -457,7 +460,7 @@ async function start(){
     const c = await Conversation.startSession({
       agentId: AGENT,
       connectionType: "webrtc",
-      dynamicVariables: { source: src, device: DEVICE },
+      dynamicVariables: { source: src, device: DEVICE, on_screen: SHOWN.length && document.body.classList.contains("has-cards") ? SHOWN.join("; ") : "nothing", my_list: LIST.length ? listSummary() : "empty" },
       clientTools: { show_products: showProducts, show_link: showLink, manage_list: manageList },
       onDisconnect: guard((d) => finish(id, d && d.reason === "error" ? MSG_DOWN : "Thanks for visiting Domestica")),
       onError: guard((e) => { console.error(e); finish(id, "Sorry, something went wrong – tap to try again"); }),
