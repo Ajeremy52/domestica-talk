@@ -53,6 +53,11 @@ body.listening #orb .core,body.speaking #orb .core{animation:none}
 .pc .acts{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .pc .acts a{flex:1;text-align:center;text-decoration:none;font-size:13px;font-weight:700;border-radius:10px;padding:8px 6px;border:1px solid rgba(191,243,214,.35);color:#dff5e8}
 .pc .acts a.buy{background:#9fe0b8;color:#0f2a1f;border-color:#9fe0b8}
+.pc .qty{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#bcd3c7}
+.pc .qty button{width:30px;height:30px;border-radius:8px;border:1px solid rgba(191,243,214,.35);background:transparent;color:#dff5e8;font-size:18px;line-height:1;cursor:pointer}
+.pc .qty b{min-width:22px;text-align:center;color:#fff}
+#allbuy{display:none;margin:14px auto 0;text-decoration:none;font-weight:700;font-size:15px;background:#9fe0b8;color:#0f2a1f;border-radius:12px;padding:12px 22px}
+body.multi #allbuy{display:inline-block}
 .pc .qr{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:12px;color:#bcd3c7;line-height:1.3}
 .pc .qr img{width:84px;height:84px;aspect-ratio:auto;border-radius:6px;background:#fff;padding:4px;flex:none}
 .pc .d{display:inline-block;margin-top:6px;font-size:12px;font-weight:700;letter-spacing:.08em;background:#b8613c;color:#fff;border-radius:999px;padding:3px 9px}
@@ -72,6 +77,7 @@ body.has-cards main{gap:2.2vh}
   <div id="status">Tap the orb and say hello</div>
   <div id="sub">Ask about any piece in the showroom – prices, sizes, colours, offers – or book a free consultation.</div>
   <div id="cards"></div>
+  <a id="allbuy" href="#" target="_blank" rel="noopener">Add all to basket</a>
   <button id="end" type="button" hidden>End conversation</button>
 </main>
 <div class="foot">You're talking to Domestica's AI assistant. Conversations are recorded to improve our service.</div>
@@ -80,6 +86,7 @@ import { Conversation } from "https://cdn.jsdelivr.net/npm/@elevenlabs/client/+e
 import QRCode from "https://cdn.jsdelivr.net/npm/qrcode@1.5.4/+esm";
 const AGENT = "agent_1801m7dts975e2hv3zhqz9bn7z0m";
 const $ = id => document.getElementById(id);
+const SITE_ = "https://www.domestica.com.mt";
 let CAT = [];
 const norm = t => String(t||"").toLowerCase().replace(/[–—-]/g," ").replace(/[^a-z0-9à-ÿ ]/g," ").replace(/\s+/g," ").trim();
 (async () => {
@@ -112,7 +119,9 @@ const eur = n => "€" + Number(n).toLocaleString("en-IE", { maximumFractionDigi
 function showProducts({ names }){
   const box = $("cards"); box.textContent = "";
   const seen = new Set();
-  (Array.isArray(names) ? names : String(names||"").split(/[|;\n]/)).map(x=>String(x).trim()).filter(Boolean).slice(0,3).forEach(nm => {
+  const BASKET = [];
+  (Array.isArray(names) ? names : String(names||"").split(/[|;\n]/)).map(x=>String(x).trim()).filter(Boolean).slice(0,3).forEach(raw => {
+    let q0 = 1; const mq = raw.match(/\s*[x×]\s*(\d{1,2})\s*$/i); const nm = mq ? raw.slice(0, mq.index) : raw; if (mq) q0 = Math.max(1, Math.min(50, +mq[1]));
     const c = best(nm); if (!c || seen.has(c.h)) return; seen.add(c.h);
     const d = document.createElement("div"); d.className = "pc";
     if (c.img) { const i = document.createElement("img"); i.src = c.img.replace(/(\.[a-z]+)(\?|$)/i, "$1$2") + (c.img.includes("?") ? "&" : "?") + "width=600"; i.alt = c.t; d.appendChild(i); }
@@ -135,11 +144,31 @@ function showProducts({ names }){
       const a = document.createElement("div"); a.className = "acts";
       const l1 = document.createElement("a"); l1.href = purl; l1.target = "_blank"; l1.rel = "noopener"; l1.textContent = "View on website";
       a.appendChild(l1);
-      if (c.price && c.avail && c.vid) { const l2 = document.createElement("a"); l2.className = "buy"; l2.href = SITE + "/cart/add?id=" + c.vid + "&quantity=1&return_to=" + encodeURIComponent("/cart?" + utm); l2.target = "_blank"; l2.rel = "noopener"; l2.textContent = "Add to basket"; a.appendChild(l2); }
+      if (c.price && c.avail && c.vid) {
+        const item = { id: c.vid, q: q0 }; BASKET.push(item);
+        const qd = document.createElement("div"); qd.className = "qty";
+        const mi = document.createElement("button"); mi.type = "button"; mi.textContent = "−"; mi.setAttribute("aria-label", "One less");
+        const qv = document.createElement("b"); qv.textContent = item.q;
+        const pl = document.createElement("button"); pl.type = "button"; pl.textContent = "+"; pl.setAttribute("aria-label", "One more");
+        const ql = document.createElement("span"); ql.textContent = "Quantity";
+        qd.append(ql, mi, qv, pl);
+        const l2 = document.createElement("a"); l2.className = "buy"; l2.target = "_blank"; l2.rel = "noopener"; l2.textContent = "Add to basket";
+        const upd = () => { qv.textContent = item.q; l2.href = SITE + "/cart/add?id=" + c.vid + "&quantity=" + item.q + "&return_to=" + encodeURIComponent("/cart?" + utm); setAll(); };
+        mi.onclick = () => { item.q = Math.max(1, item.q - 1); upd(); };
+        pl.onclick = () => { item.q = Math.min(50, item.q + 1); upd(); };
+        a.appendChild(l2); b.appendChild(qd); upd();
+      }
       b.appendChild(a);
     }
     d.appendChild(b); box.appendChild(d);
   });
+  function setAll(){
+    const all = $("allbuy");
+    all.href = SITE_ + "/cart/add?" + BASKET.map((x, i) => "items[" + i + "][id]=" + x.id + "&items[" + i + "][quantity]=" + x.q).join("&") + "&return_to=" + encodeURIComponent("/cart?utm_source=showroom_assistant&utm_medium=" + encodeURIComponent(SRC) + "&utm_campaign=voice_assistant");
+    all.textContent = "Add all " + BASKET.reduce((n, x) => n + x.q, 0) + " to basket";
+  }
+  if (!KIOSK && BASKET.length > 1) setAll();
+  document.body.classList.toggle("multi", !KIOSK && BASKET.length > 1);
   document.body.classList.toggle("has-cards", !!box.children.length);
   return box.children.length ? "shown" : "not found";
 }
@@ -172,7 +201,7 @@ const KIOSK = _q.get("kiosk") === "1";
 const SRC = _q.get("src") || (KIOSK ? "screen" : (/domestica\.com\.mt/.test(document.referrer) ? "website" : "direct"));
 const DEVICE = KIOSK ? "showroom screen" : (/Mobi|Android|iPhone/i.test(navigator.userAgent) ? "phone" : "computer");
 const src = SRC;
-function setState(s, txt){ const hc = document.body.classList.contains("has-cards"); document.body.className = s; if (hc) document.body.classList.add("has-cards"); if (txt != null) $("status").textContent = txt; }
+function setState(s, txt){ const hc = document.body.classList.contains("has-cards"), mu = document.body.classList.contains("multi"); document.body.className = s; if (hc) document.body.classList.add("has-cards"); if (mu) document.body.classList.add("multi"); if (txt != null) $("status").textContent = txt; }
 function loop(){
   if (!conv) return;
   let v = 0;
@@ -187,7 +216,7 @@ function reset(msg){
   setTimeout(wakeListen, 1500);
   $("end").hidden = true;
   clearTimeout(idleTimer);
-  idleTimer = setTimeout(() => { $("cards").textContent = ""; document.body.classList.remove("has-cards"); $("sub").textContent = "Ask about any piece in the showroom – prices, sizes, colours, offers – or book a free consultation."; }, 8000);
+  idleTimer = setTimeout(() => { $("cards").textContent = ""; document.body.classList.remove("has-cards", "multi"); $("sub").textContent = "Ask about any piece in the showroom – prices, sizes, colours, offers – or book a free consultation."; }, 8000);
 }
 async function start(){
   if (conv || starting) return;
