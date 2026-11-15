@@ -198,8 +198,8 @@ function showProducts({ names }){
   return "Now on the screen: " + shownTxt + "." + (missing.length ? " Not found: " + missing.join("; ") + "." : "");
 }
 const LINKS = {
-  directions_showroom: ["Domestica Showroom", "Valley Road, Msida · Mon–Fri 09:00–13:00, 15:30–19:30 · Sat 09:00–13:00", "Get directions", "https://www.google.com/maps/place/?q=place_id:ChIJIxX4OqxaDhMReQlS1E4-gZw"],
-  directions_factory: ["Domestica Factory", "Attard Industrial Estate, Triq L-Imdina, Attard · visits by appointment", "Get directions", "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent("Domestica, Attard Industrial Estate, Triq L-Imdina, Attard, Malta")],
+  directions_showroom: ["Domestica Showroom", "Valley Road, Msida · Mon–Fri 09:00–13:00, 15:30–19:30 · Sat 09:00–13:00", "Get directions", "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent("Domestica, Valley Road, Msida, Malta") + "&destination_place_id=ChIJIxX4OqxaDhMReQlS1E4-gZw"],
+  directions_factory: ["Domestica Factory", "Attard Industrial Estate, Triq L-Imdina, Attard · visits by appointment", "Get directions", "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent("Domestica, Attard Industrial Estate, Triq L-Imdina, Attard, Malta")],
   call: ["Call Domestica", "+356 2144 7604", "Call now", "tel:+35621447604"],
   email: ["Email Domestica", "info@domestica.com.mt", "Write an email", "mailto:info@domestica.com.mt"],
   facebook: ["Domestica on Facebook", "facebook.com/domesticamt", "Open Facebook", "https://www.facebook.com/domesticamt/"],
