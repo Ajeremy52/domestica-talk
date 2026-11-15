@@ -45,7 +45,7 @@ body.listening #orb .core,body.speaking #orb .core{animation:none}
 #cards{display:flex;gap:2vw;justify-content:center;flex-wrap:wrap;max-width:94vw}
 #cards:empty{display:none}
 .pc{width:min(26vw,300px);background:rgba(255,255,255,.06);border:1px solid rgba(191,243,214,.2);border-radius:18px;overflow:hidden;text-align:left;animation:pin .5s ease-out both}
-.pc img{width:100%;aspect-ratio:4/3;object-fit:cover;background:#fff;display:block}
+.pc img{width:100%;aspect-ratio:4/3;object-fit:contain;padding:8px;background:#fff;display:block}
 .pc .b{padding:12px 14px}
 .pc .t{font-weight:600;font-size:clamp(14px,1.4vw,18px);line-height:1.3}
 .pc .p{margin-top:6px;font-size:clamp(16px,1.6vw,22px);font-weight:700;color:#9fe0b8}
@@ -62,8 +62,14 @@ body.multi #allbuy{display:inline-block}
 .pc .qr img{width:84px;height:84px;aspect-ratio:auto;border-radius:6px;background:#fff;padding:4px;flex:none}
 .pc .d{display:inline-block;margin-top:6px;font-size:12px;font-weight:700;letter-spacing:.08em;background:#b8613c;color:#fff;border-radius:999px;padding:3px 9px}
 @keyframes pin{from{opacity:0;transform:translateY(16px)}}
-body.has-cards #orb{width:min(30vmin,240px)}
-body.has-cards main{gap:2.2vh}
+body.has-cards #orb{width:min(18vmin,150px);flex:none}
+body.has-cards main{gap:1.4vh;justify-content:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-top:max(14px,env(safe-area-inset-top));padding-bottom:calc(60px + env(safe-area-inset-bottom))}
+body.has-cards .brand{display:none}
+body.has-cards #sub{min-height:0;font-size:clamp(14px,1.7vw,19px);max-height:4.4em;overflow:hidden;flex:none}
+body.has-cards #status{font-size:clamp(15px,1.9vw,22px);min-height:0;flex:none}
+body.has-cards #cards,body.has-cards #allbuy,body.has-cards #end{flex:none}
+body.has-cards .foot{display:none}
+@media (max-width:700px){.pc{width:min(78vw,320px)} body.has-cards #cards{flex-direction:column;align-items:center}}
 #orb{transition:width .4s ease}
 </style>
 </head>
