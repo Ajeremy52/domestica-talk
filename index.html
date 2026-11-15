@@ -65,6 +65,20 @@ body.listening #orb .core,body.speaking #orb .core{animation:none}
 body.multi #allbuy{display:inline-block}
 .pc .qr{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:12px;color:#bcd3c7;line-height:1.3}
 .pc .qr img{width:84px;height:84px;aspect-ratio:auto;border-radius:6px;background:#fff;padding:4px;flex:none}
+#tray{position:fixed;left:50%;transform:translateX(-50%);bottom:max(12px,env(safe-area-inset-bottom));width:min(94vw,560px);background:#f6f3ee;color:#13241d;border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,.45);padding:10px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;z-index:20;text-align:left}
+#tray[hidden]{display:none}
+#tray .ti{flex:1;min-width:150px;border:0;background:none;font:700 15px Inter,system-ui;color:#13241d;text-align:left;cursor:pointer;padding:8px 4px}
+#tray .tg{background:#1f6f53;color:#fff;text-decoration:none;font-weight:700;border-radius:12px;padding:12px 16px;font-size:15px}
+#tray .td{display:none;width:100%;order:3;border-top:1px solid #ddd5c8;padding-top:6px}
+#tray.open .td{display:block}
+#tray .tr{display:flex;justify-content:space-between;gap:8px;font-size:14px;padding:6px 0}
+#tray .tr button{border:0;background:none;color:#b8613c;font-weight:700;cursor:pointer;min-height:30px}
+#tray .tq{display:flex;align-items:center;gap:12px;font-size:14px;font-weight:600}
+#tray .tq img{width:120px;height:120px}
+body.kiosk #tray{left:auto;right:2vw;bottom:auto;top:50%;transform:translateY(-50%);width:min(24vw,360px);flex-direction:column;align-items:stretch} body.kiosk #tray .ti{font-size:20px} body.kiosk #tray .td{display:block;order:2} body.kiosk #tray .tq{order:3;flex-direction:column;text-align:center} body.kiosk #tray .tq img{width:100%;max-width:220px;height:auto;margin:0 auto} body.kiosk.has-tray main{padding-right:28vw;padding-bottom:0} body.kiosk .pc .acts button{font-size:clamp(14px,1.1vw,18px);padding:10px 8px}
+body.has-tray main{padding-bottom:calc(110px + env(safe-area-inset-bottom))}
+body.has-tray .foot{display:none}
+.pc .acts button{flex:1;text-align:center;font:700 13px Inter,system-ui;border-radius:10px;padding:8px 6px;border:1px solid #9fe0b8;background:#9fe0b8;color:#0f2a1f;cursor:pointer}
 .pc .d{display:inline-block;margin-top:6px;font-size:12px;font-weight:700;letter-spacing:.08em;background:#b8613c;color:#fff;border-radius:999px;padding:3px 9px}
 @keyframes pin{from{opacity:0;transform:translateY(16px)}}
 body.has-cards #orb{width:min(18vmin,150px);flex:none}
@@ -98,6 +112,7 @@ body.kiosk.has-cards #sub{font-size:clamp(18px,1.6vw,28px)}
   <a id="allbuy" href="#" target="_blank" rel="noopener">Add all to basket</a>
   <button id="end" type="button" hidden>End conversation</button>
 </main>
+<div id="tray" hidden></div>
 <div class="foot">You're talking to Domestica's AI assistant. Conversations are recorded to improve our service.</div>
 <script type="module">
 let Conversation = null, QRCode = null;
@@ -136,6 +151,51 @@ function best(name){
   return sc >= .45 ? top : null;
 }
 const eur = n => { const v = Number(n); return "€" + v.toLocaleString("en-IE", Number.isInteger(v) ? { maximumFractionDigits: 0 } : { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+// ---- My list: collect products during the chat, check out once at the end ----
+let LIST = []; try { LIST = JSON.parse(sessionStorage.getItem("domList") || "[]"); } catch(e) { LIST = []; }
+const saveList = () => { try { sessionStorage.setItem("domList", JSON.stringify(LIST)); } catch(e) {} };
+const inList = vid => LIST.some(x => x.id === vid);
+function checkoutUrl(medium){
+  return SITE_ + "/cart/add?" + LIST.map((x, i) => "items[" + i + "][id]=" + x.id + "&items[" + i + "][quantity]=" + x.q).join("&") + "&return_to=" + encodeURIComponent("/cart?utm_source=showroom_assistant&utm_medium=" + encodeURIComponent(medium || SRC) + "&utm_campaign=voice_assistant");
+}
+function listAdd(c, q){ const e = LIST.find(x => x.id === c.vid); if (e) e.q = q; else LIST.push({ id: c.vid, t: c.t, p: c.price, q }); saveList(); renderTray(); }
+function listRemove(vid){ LIST = LIST.filter(x => x.id !== vid); saveList(); renderTray(); }
+function listSummary(){ if (!LIST.length) return "The list is empty."; const tot = LIST.reduce((n, x) => n + x.p * x.q, 0); return "List: " + LIST.map(x => x.t + (x.q > 1 ? " x" + x.q : "") + " (" + eur(x.p) + " each)").join("; ") + ". Total " + eur(tot) + "."; }
+function renderTray(){
+  const tr = $("tray"); if (!tr) return;
+  tr.textContent = "";
+  if (!LIST.length) { tr.hidden = true; document.body.classList.remove("has-tray"); return; }
+  tr.hidden = false; document.body.classList.add("has-tray");
+  const n = LIST.reduce((k, x) => k + x.q, 0), tot = LIST.reduce((k, x) => k + x.p * x.q, 0);
+  const info = document.createElement("button"); info.type = "button"; info.className = "ti";
+  info.textContent = "My list · " + n + (n === 1 ? " item" : " items") + " · " + eur(tot); info.onclick = () => tr.classList.toggle("open");
+  const det = document.createElement("div"); det.className = "td";
+  LIST.forEach(x => { const r = document.createElement("div"); r.className = "tr"; const s = document.createElement("span"); s.textContent = x.q + " × " + x.t; const rm = document.createElement("button"); rm.type = "button"; rm.textContent = "Remove"; rm.onclick = () => listRemove(x.id); r.append(s, rm); det.appendChild(r); });
+  tr.append(info, det);
+  if (KIOSK) {
+    const qr = document.createElement("div"); qr.className = "tq"; const qi = document.createElement("img"); qi.alt = "Scan to check out on your phone";
+    loadQR().then(Q => Q.toDataURL(checkoutUrl("screen_qr"), { margin: 1, width: 260 })).then(u => qi.src = u).catch(() => qr.remove());
+    const qt = document.createElement("span"); qt.textContent = "Scan to take your list to checkout on your phone"; qr.append(qi, qt); tr.appendChild(qr);
+  } else {
+    const go = document.createElement("a"); go.className = "tg"; go.href = checkoutUrl(); go.target = "_blank"; go.rel = "noopener"; go.textContent = "Go to checkout →";
+    go.onclick = () => { setTimeout(() => { LIST = []; saveList(); renderTray(); }, 1500); };
+    tr.appendChild(go);
+  }
+}
+function manageList({ action, names }){
+  if (action === "clear") { LIST = []; saveList(); renderTray(); return "The list is now empty."; }
+  if (action === "show") { $("tray") && $("tray").classList.add("open"); return listSummary(); }
+  const arr = (Array.isArray(names) ? names : String(names || "").split(/[|;\n]/)).map(x => String(x).trim()).filter(Boolean);
+  const done = [], miss = [];
+  arr.forEach(raw => {
+    let q = 1; const mq = raw.match(/\s*[x×]\s*(\d{1,2})\s*$/i); const nm = mq ? raw.slice(0, mq.index) : raw; if (mq) q = Math.max(1, Math.min(50, +mq[1]));
+    const c = best(nm); if (!c) { miss.push(nm); return; }
+    if (action === "remove") { listRemove(c.vid); done.push(c.t); return; }
+    if (!(c.price && c.avail && c.vid)) { miss.push(c.t + " (not sold online, a salesperson can help)"); return; }
+    listAdd(c, q); done.push(c.t + (q > 1 ? " x" + q : ""));
+  });
+  return (done.length ? (action === "remove" ? "Removed: " : "Added: ") + done.join("; ") + ". " : "") + (miss.length ? "Could not add: " + miss.join("; ") + ". " : "") + listSummary();
+}
 function showProducts({ names }){
   const box = $("cards");
   const seen = new Set(), missing = [], picks = [];
@@ -145,7 +205,6 @@ function showProducts({ names }){
   });
   if (!picks.length) return CAT.length ? "Nothing new shown; the screen still shows the previous products. Not found: " + missing.join("; ") : "The product photos are not available right now; describe the products in words.";
   box.textContent = "";
-  const BASKET = [];
   picks.forEach(([c, q0]) => {
     const d = document.createElement("div"); d.className = "pc";
     const ph = () => { const f = document.createElement("div"); f.className = "ph"; f.textContent = "DOMESTICA"; return f; };
@@ -156,44 +215,38 @@ function showProducts({ names }){
     if (c.was) { const w = document.createElement("s"); w.textContent = eur(c.was); p.appendChild(w); }
     b.appendChild(p);
     if (c.was) { const g = document.createElement("span"); g.className = "d"; g.textContent = "BLACK NOVEMBER"; b.appendChild(g); }
-    const SITE = "https://www.domestica.com.mt";
+    const SITE = SITE_;
     const utm = "utm_source=showroom_assistant&utm_medium=" + encodeURIComponent(SRC) + "&utm_campaign=voice_assistant";
     const purl = SITE + "/products/" + c.h + "?" + utm;
+    const buyable = !!(c.price && c.avail && c.vid);
+    let q = q0;
+    if (buyable) {
+      const qd = document.createElement("div"); qd.className = "qty";
+      const mi = document.createElement("button"); mi.type = "button"; mi.textContent = "−"; mi.setAttribute("aria-label", "One less");
+      const qv = document.createElement("b"); qv.textContent = q;
+      const pl = document.createElement("button"); pl.type = "button"; pl.textContent = "+"; pl.setAttribute("aria-label", "One more");
+      const ql = document.createElement("span"); ql.textContent = "Quantity";
+      qd.append(ql, mi, qv, pl); b.appendChild(qd);
+      mi.onclick = () => { q = Math.max(1, q - 1); qv.textContent = q; };
+      pl.onclick = () => { q = Math.min(50, q + 1); qv.textContent = q; };
+    }
+    const a = document.createElement("div"); a.className = "acts";
+    if (buyable) {
+      const add = document.createElement("button"); add.type = "button"; add.className = "buy"; add.textContent = inList(c.vid) ? "In your list ✓" : "Add to my list";
+      add.onclick = () => { listAdd(c, q); add.textContent = "In your list ✓"; };
+      a.appendChild(add);
+    }
+    if (!KIOSK) { const l1 = document.createElement("a"); l1.href = purl; l1.target = "_blank"; l1.rel = "noopener"; l1.textContent = "View on website"; a.appendChild(l1); }
+    b.appendChild(a);
     if (KIOSK) {
-      const q = document.createElement("div"); q.className = "qr";
+      const qr = document.createElement("div"); qr.className = "qr";
       const qi = document.createElement("img"); qi.alt = "Scan to open on your phone";
-      loadQR().then(Q => Q.toDataURL(SITE + "/products/" + c.h + "?" + utm.replace(encodeURIComponent(SRC), "screen_qr"), { margin: 1, width: 200 }).then(u => qi.src = u)).catch(() => { q.remove(); });
-      const qt = document.createElement("span"); qt.textContent = "Scan to see it on your phone and buy online";
-      q.appendChild(qi); q.appendChild(qt); b.appendChild(q);
-    } else {
-      const a = document.createElement("div"); a.className = "acts";
-      const l1 = document.createElement("a"); l1.href = purl; l1.target = "_blank"; l1.rel = "noopener"; l1.textContent = "View on website";
-      a.appendChild(l1);
-      if (c.price && c.avail && c.vid) {
-        const item = { id: c.vid, q: q0 }; BASKET.push(item);
-        const qd = document.createElement("div"); qd.className = "qty";
-        const mi = document.createElement("button"); mi.type = "button"; mi.textContent = "−"; mi.setAttribute("aria-label", "One less");
-        const qv = document.createElement("b"); qv.textContent = item.q;
-        const pl = document.createElement("button"); pl.type = "button"; pl.textContent = "+"; pl.setAttribute("aria-label", "One more");
-        const ql = document.createElement("span"); ql.textContent = "Quantity";
-        qd.append(ql, mi, qv, pl);
-        const l2 = document.createElement("a"); l2.className = "buy"; l2.target = "_blank"; l2.rel = "noopener"; l2.textContent = "Add to basket";
-        const upd = () => { qv.textContent = item.q; l2.href = SITE + "/cart/add?id=" + c.vid + "&quantity=" + item.q + "&return_to=" + encodeURIComponent("/cart?" + utm); setAll(); };
-        mi.onclick = () => { item.q = Math.max(1, item.q - 1); upd(); };
-        pl.onclick = () => { item.q = Math.min(50, item.q + 1); upd(); };
-        a.appendChild(l2); b.appendChild(qd); upd();
-      }
-      b.appendChild(a);
+      loadQR().then(Q => Q.toDataURL(SITE + "/products/" + c.h + "?" + utm.replace(encodeURIComponent(SRC), "screen_qr"), { margin: 1, width: 200 }).then(u => qi.src = u)).catch(() => { qr.remove(); });
+      const qt = document.createElement("span"); qt.textContent = "Scan to see it on your phone";
+      qr.appendChild(qi); qr.appendChild(qt); b.appendChild(qr);
     }
     d.appendChild(b); box.appendChild(d);
   });
-  function setAll(){
-    const all = $("allbuy");
-    all.href = SITE_ + "/cart/add?" + BASKET.map((x, i) => "items[" + i + "][id]=" + x.id + "&items[" + i + "][quantity]=" + x.q).join("&") + "&return_to=" + encodeURIComponent("/cart?utm_source=showroom_assistant&utm_medium=" + encodeURIComponent(SRC) + "&utm_campaign=voice_assistant");
-    all.textContent = "Add all " + BASKET.reduce((n, x) => n + x.q, 0) + " to basket";
-  }
-  if (!KIOSK && BASKET.length > 1) setAll();
-  document.body.classList.toggle("multi", !KIOSK && BASKET.length > 1);
   document.body.classList.toggle("has-cards", !!box.children.length);
   const shownTxt = picks.map(([c, q]) => c.t + (q > 1 ? " x" + q : "") + (c.price ? " (" + eur(c.price) + ")" : " (price on request)")).join("; ");
   return "Now on the screen: " + shownTxt + "." + (missing.length ? " Not found: " + missing.join("; ") + "." : "");
@@ -241,7 +294,7 @@ function showLink({ kind }){
   document.body.classList.add("has-cards");
   return "Now on the screen: " + title + " (" + sub + ") with a '" + (KIOSK ? "scan this code" : btn) + "' " + (KIOSK ? "QR code" : "button") + ".";
 }
-window.__dom = { showProducts, showLink, cat: () => CAT.length };
+window.__dom = { showProducts, showLink, manageList, cat: () => CAT.length };
 let conv = null, raf = 0, idleTimer = 0, starting = false;
 // Wake word: say "Domestica" (like "Hey Siri") to start, on the showroom screen (?kiosk=1) or with ?wake=1
 const QS = new URLSearchParams(location.search);
@@ -271,7 +324,7 @@ const SRC = _q.get("src") || (KIOSK ? "screen" : (/domestica\.com\.mt/.test(docu
 if (KIOSK) document.body.classList.add("kiosk");
 const DEVICE = KIOSK ? "showroom screen" : (/Mobi|Android|iPhone/i.test(navigator.userAgent) ? "phone" : "computer");
 const src = SRC;
-function setState(s, txt){ const hc = document.body.classList.contains("has-cards"), mu = document.body.classList.contains("multi"); document.body.className = s; if (hc) document.body.classList.add("has-cards"); if (mu) document.body.classList.add("multi"); if (KIOSK) document.body.classList.add("kiosk"); if (txt != null) $("status").textContent = txt; }
+function setState(s, txt){ const hc = document.body.classList.contains("has-cards"), mu = document.body.classList.contains("multi"); document.body.className = s; if (hc) document.body.classList.add("has-cards"); if (mu) document.body.classList.add("multi"); if (KIOSK) document.body.classList.add("kiosk"); if (LIST.length) document.body.classList.add("has-tray"); if (txt != null) $("status").textContent = txt; }
 function loop(){
   if (!conv) return;
   let v = 0;
@@ -286,7 +339,7 @@ function reset(msg){
   setTimeout(wakeListen, 1500);
   $("end").hidden = true;
   clearTimeout(idleTimer);
-  idleTimer = setTimeout(() => { $("cards").textContent = ""; document.body.classList.remove("has-cards", "multi"); $("sub").textContent = "Ask about any piece in the showroom – prices, sizes, colours, offers – or book a free consultation."; }, 8000);
+  idleTimer = setTimeout(() => { if (KIOSK) { LIST = []; saveList(); renderTray(); } $("cards").textContent = ""; document.body.classList.remove("has-cards", "multi"); $("sub").textContent = "Ask about any piece in the showroom – prices, sizes, colours, offers – or book a free consultation."; }, KIOSK ? 45000 : 8000);
 }
 async function start(){
   if (conv || starting) return;
@@ -300,7 +353,7 @@ async function start(){
       agentId: AGENT,
       connectionType: "webrtc",
       dynamicVariables: { source: src, device: DEVICE },
-      clientTools: { show_products: showProducts, show_link: showLink },
+      clientTools: { show_products: showProducts, show_link: showLink, manage_list: manageList },
       onConnect: () => { $("end").hidden = false; loop(); },
       onDisconnect: (d) => reset(d && d.reason === "error" ? "The assistant isn't available right now – please ask anyone at the front desk" : "Thanks for visiting Domestica"),
       onError: (e) => { console.error(e); reset("Sorry, something went wrong – tap to try again"); },
@@ -324,6 +377,7 @@ $("end").addEventListener("click", () => conv && conv.endSession());
 document.addEventListener("visibilitychange", () => { if (document.hidden && conv) { try { conv.endSession(); } catch(e){} } });
 document.addEventListener("visibilitychange", () => { if (document.hidden) wakeStop(); else wakeListen(); });
 if (WAKE) { $("status").textContent = IDLE_TXT; navigator.mediaDevices.getUserMedia({ audio: true }).then(st => { st.getTracks().forEach(t => t.stop()); wakeListen(); }).catch(() => {}); }
+renderTray();
 window.addEventListener("pagehide", () => { if (conv) { try { conv.endSession(); } catch(e){} } });
 </script>
 </body>
