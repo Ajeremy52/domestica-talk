@@ -79,6 +79,7 @@ body.multi #allbuy{display:inline-block}
 body.kiosk #tray{left:auto;right:2vw;bottom:auto;top:50%;transform:translateY(-50%);width:min(24vw,360px);flex-direction:column;align-items:stretch} body.kiosk #tray .ti{font-size:20px} body.kiosk #tray .td{display:block;order:2} body.kiosk #tray .tq{order:3;flex-direction:column;text-align:center} body.kiosk #tray .tq img{width:100%;max-width:220px;height:auto;margin:0 auto} body.kiosk.has-tray main{padding-right:28vw;padding-bottom:0} body.kiosk .pc .acts button{font-size:clamp(14px,1.1vw,18px);padding:10px 8px}
 body.has-tray main{padding-bottom:calc(110px + env(safe-area-inset-bottom))}
 body.has-tray .foot{display:none}
+body:not(.kiosk).has-cards.has-tray main{padding-bottom:calc(140px + env(safe-area-inset-bottom))}
 .pc .acts button{flex:1;text-align:center;font:700 13px Inter,system-ui;border-radius:10px;padding:8px 6px;border:1px solid #9fe0b8;background:#9fe0b8;color:#0f2a1f;cursor:pointer}
 .pc .d{display:inline-block;margin-top:6px;font-size:12px;font-weight:700;letter-spacing:.08em;background:#b8613c;color:#fff;border-radius:999px;padding:3px 9px}
 @keyframes pin{from{opacity:0;transform:translateY(16px)}}
@@ -122,6 +123,11 @@ body.kiosk.has-cards #sub{font-size:clamp(18px,1.6vw,28px)}
 body.typing .foot{display:none}
 .ct-note{margin:0;color:#4b5e56;font-size:13px}.ct-err{color:#b3261e;font-size:13px;margin:8px 0 0}
 body.kiosk #typebar input,body.kiosk #typebar button{font-size:22px}
+#langs{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:6px auto 4px;max-width:560px}
+#langs button{font:600 13px Inter,system-ui;padding:6px 11px;border-radius:999px;border:1px solid rgba(255,255,255,.28);background:transparent;color:rgba(255,255,255,.85);cursor:pointer}
+#langs button[aria-pressed="true"]{background:#9fe0b8;color:#0f2a1f;border-color:#9fe0b8}
+body.kiosk #langs button{font-size:18px;padding:10px 18px}
+body.connecting #langs,body.listening #langs,body.speaking #langs,body.has-cards #langs{display:none}
 .kio-only{display:none}body.kiosk .kio-only{display:inline}
 .foot{text-align:center;padding:0 12px}body.kiosk .foot{font-size:15px}
 </style>
@@ -134,23 +140,24 @@ body.kiosk #typebar input,body.kiosk #typebar button{font-size:22px}
     <svg viewBox="0 0 92 92" aria-hidden="true"><defs><path id="c" d="M46,46 m-37,0 a37,37 0 1,1 74,0 a37,37 0 1,1 -74,0"/></defs><g class="lt"><text><textPath href="#c">DOMESTICA · DOMESTICA · </textPath></text></g></svg>
   </button>
   <div id="status">Tap the orb and say hello</div>
+  <div id="langs" role="group" aria-label="Language"></div>
   <div id="sub">Ask about any piece in the showroom – prices, sizes, colours, offers – or book a free consultation.</div>
   <div id="cards"></div>
   <a id="allbuy" href="#" target="_blank" rel="noopener">Add all to basket</a>
-  <div id="ctl"><button id="typebtn" type="button" hidden>Type instead</button><button id="end" type="button" hidden>End conversation</button></div>
-  <form id="typebar" hidden autocomplete="off"><input id="tb-in" type="text" maxlength="400" placeholder="Type your message…" aria-label="Type a message to the assistant"><button type="submit">Send</button></form>
+  <div id="ctl"><button id="typebtn" type="button" hidden data-t="type">Type instead</button><button id="end" type="button" hidden data-t="end">End conversation</button></div>
+  <form id="typebar" hidden autocomplete="off"><input id="tb-in" type="text" maxlength="400" placeholder="Type your message…" aria-label="Type a message to the assistant"><button type="submit" data-t="send">Send</button></form>
 </main>
 <div id="tray" hidden></div>
 <div class="foot"><span class="kio-only">This screen listens only for the word “Domestica” – nothing is recorded until a chat starts. </span>You're talking to Domestica's AI assistant. Chats are recorded. <a id="pv-link" href="#">Privacy</a></div>
 <div id="contact" role="dialog" aria-modal="true" aria-labelledby="ct-h" hidden>
   <form class="pv-card" id="ct-form" autocomplete="on" novalidate>
-    <h2 id="ct-h">Your details</h2>
-    <p class="ct-note">Type them so we get them exactly right. Only used by our team to follow up.</p>
-    <label>First name<input id="ct-name" name="given-name" autocomplete="given-name" maxlength="60"></label>
-    <label>Phone<span class="ct-ph"><select id="ct-cc" aria-label="Country code"><option value="356">Malta (+356)</option><option value="39">Italy (+39)</option><option value="44">United Kingdom (+44)</option><option value="353">Ireland (+353)</option><option value="49">Germany (+49)</option><option value="33">France (+33)</option><option value="34">Spain (+34)</option><option value="31">Netherlands (+31)</option><option value="32">Belgium (+32)</option><option value="43">Austria (+43)</option><option value="41">Switzerland (+41)</option><option value="46">Sweden (+46)</option><option value="47">Norway (+47)</option><option value="45">Denmark (+45)</option><option value="358">Finland (+358)</option><option value="48">Poland (+48)</option><option value="420">Czechia (+420)</option><option value="421">Slovakia (+421)</option><option value="36">Hungary (+36)</option><option value="40">Romania (+40)</option><option value="359">Bulgaria (+359)</option><option value="30">Greece (+30)</option><option value="357">Cyprus (+357)</option><option value="385">Croatia (+385)</option><option value="386">Slovenia (+386)</option><option value="381">Serbia (+381)</option><option value="389">North Macedonia (+389)</option><option value="355">Albania (+355)</option><option value="351">Portugal (+351)</option><option value="370">Lithuania (+370)</option><option value="371">Latvia (+371)</option><option value="372">Estonia (+372)</option><option value="380">Ukraine (+380)</option><option value="7">Russia (+7)</option><option value="90">Turkey (+90)</option><option value="218">Libya (+218)</option><option value="216">Tunisia (+216)</option><option value="20">Egypt (+20)</option><option value="212">Morocco (+212)</option><option value="234">Nigeria (+234)</option><option value="233">Ghana (+233)</option><option value="254">Kenya (+254)</option><option value="27">South Africa (+27)</option><option value="291">Eritrea (+291)</option><option value="251">Ethiopia (+251)</option><option value="252">Somalia (+252)</option><option value="249">Sudan (+249)</option><option value="91">India (+91)</option><option value="92">Pakistan (+92)</option><option value="880">Bangladesh (+880)</option><option value="977">Nepal (+977)</option><option value="94">Sri Lanka (+94)</option><option value="63">Philippines (+63)</option><option value="62">Indonesia (+62)</option><option value="84">Vietnam (+84)</option><option value="86">China (+86)</option><option value="81">Japan (+81)</option><option value="82">South Korea (+82)</option><option value="971">UAE (+971)</option><option value="966">Saudi Arabia (+966)</option><option value="972">Israel (+972)</option><option value="963">Syria (+963)</option><option value="961">Lebanon (+961)</option><option value="1">United States / Canada (+1)</option><option value="52">Mexico (+52)</option><option value="55">Brazil (+55)</option><option value="57">Colombia (+57)</option><option value="54">Argentina (+54)</option><option value="58">Venezuela (+58)</option><option value="51">Peru (+51)</option><option value="61">Australia (+61)</option><option value="64">New Zealand (+64)</option><option value="">Other…</option></select><input id="ct-ccx" placeholder="+code" maxlength="5" hidden aria-label="Country code"><input id="ct-tel" type="tel" name="tel-national" autocomplete="tel-national" inputmode="tel" maxlength="20" placeholder="Number"></span></label>
-    <label>Email<input id="ct-email" type="email" name="email" autocomplete="email" inputmode="email" maxlength="100" placeholder="name@example.com"></label>
+    <h2 id="ct-h" data-t="ctTitle">Your details</h2>
+    <p class="ct-note" data-t="ctNote">Type them so we get them exactly right. Only used by our team to follow up.</p>
+    <label><span data-t="ctName">First name</span><input id="ct-name" name="given-name" autocomplete="given-name" maxlength="60"></label>
+    <label><span data-t="ctPhone">Phone</span><span class="ct-ph"><select id="ct-cc" aria-label="Country code"><option value="356">Malta (+356)</option><option value="39">Italy (+39)</option><option value="44">United Kingdom (+44)</option><option value="353">Ireland (+353)</option><option value="49">Germany (+49)</option><option value="33">France (+33)</option><option value="34">Spain (+34)</option><option value="31">Netherlands (+31)</option><option value="32">Belgium (+32)</option><option value="43">Austria (+43)</option><option value="41">Switzerland (+41)</option><option value="46">Sweden (+46)</option><option value="47">Norway (+47)</option><option value="45">Denmark (+45)</option><option value="358">Finland (+358)</option><option value="48">Poland (+48)</option><option value="420">Czechia (+420)</option><option value="421">Slovakia (+421)</option><option value="36">Hungary (+36)</option><option value="40">Romania (+40)</option><option value="359">Bulgaria (+359)</option><option value="30">Greece (+30)</option><option value="357">Cyprus (+357)</option><option value="385">Croatia (+385)</option><option value="386">Slovenia (+386)</option><option value="381">Serbia (+381)</option><option value="389">North Macedonia (+389)</option><option value="355">Albania (+355)</option><option value="351">Portugal (+351)</option><option value="370">Lithuania (+370)</option><option value="371">Latvia (+371)</option><option value="372">Estonia (+372)</option><option value="380">Ukraine (+380)</option><option value="7">Russia (+7)</option><option value="90">Turkey (+90)</option><option value="218">Libya (+218)</option><option value="216">Tunisia (+216)</option><option value="20">Egypt (+20)</option><option value="212">Morocco (+212)</option><option value="234">Nigeria (+234)</option><option value="233">Ghana (+233)</option><option value="254">Kenya (+254)</option><option value="27">South Africa (+27)</option><option value="291">Eritrea (+291)</option><option value="251">Ethiopia (+251)</option><option value="252">Somalia (+252)</option><option value="249">Sudan (+249)</option><option value="91">India (+91)</option><option value="92">Pakistan (+92)</option><option value="880">Bangladesh (+880)</option><option value="977">Nepal (+977)</option><option value="94">Sri Lanka (+94)</option><option value="63">Philippines (+63)</option><option value="62">Indonesia (+62)</option><option value="84">Vietnam (+84)</option><option value="86">China (+86)</option><option value="81">Japan (+81)</option><option value="82">South Korea (+82)</option><option value="971">UAE (+971)</option><option value="966">Saudi Arabia (+966)</option><option value="972">Israel (+972)</option><option value="963">Syria (+963)</option><option value="961">Lebanon (+961)</option><option value="1">United States / Canada (+1)</option><option value="52">Mexico (+52)</option><option value="55">Brazil (+55)</option><option value="57">Colombia (+57)</option><option value="54">Argentina (+54)</option><option value="58">Venezuela (+58)</option><option value="51">Peru (+51)</option><option value="61">Australia (+61)</option><option value="64">New Zealand (+64)</option><option value="">Other…</option></select><input id="ct-ccx" placeholder="+code" maxlength="5" hidden aria-label="Country code"><input id="ct-tel" type="tel" name="tel-national" autocomplete="tel-national" inputmode="tel" maxlength="20" placeholder="Number"></span></label>
+    <label><span data-t="ctEmail">Email</span><input id="ct-email" type="email" name="email" autocomplete="email" inputmode="email" maxlength="100" placeholder="name@example.com"></label>
     <p id="ct-err" class="ct-err" hidden></p>
-    <div class="pv-btns"><button id="ct-no" type="button">Cancel</button><button id="ct-ok" type="submit">Send</button></div>
+    <div class="pv-btns"><button id="ct-no" type="button" data-t="cancel">Cancel</button><button id="ct-ok" type="submit" data-t="send">Send</button></div>
   </form>
 </div>
 <div id="privacy" role="dialog" aria-modal="true" aria-labelledby="pv-h" hidden>
@@ -169,6 +176,21 @@ body.kiosk #typebar input,body.kiosk #typebar button{font-size:22px}
   </div>
 </div>
 <script type="module">
+// ---- Languages: the client can pick one before starting; the assistant still follows whatever language they speak ----
+const I18N = {
+  en: { name: "English", idle: "Tap the orb and say hello", idleWake: "Say “Domestica” or tap the orb", intro: "Ask about any piece in the showroom – prices, sizes, colours, offers – or book a free consultation.", connecting: "Connecting…", listening: "Listening…", speaking: "Domestica is speaking…", add: "Add to my list", added: "In your list ✓", view: "View on website", checkout: "Go to checkout →", mylist: "My list", item: "item", items: "items", remove: "Remove", type: "Type instead", hidekb: "Hide keyboard", end: "End conversation", send: "Send", typeph: "Type your message…", you: "You: ", thanks: "Thanks for visiting Domestica", scanCard: "Scan to see it on your phone", scanList: "Scan to take your list to checkout on your phone", scanLink: "Scan with your phone camera", qty: "Quantity", ctTitle: "Your details", ctNote: "Type them so we get them exactly right. Only used by our team to follow up.", ctName: "First name", ctPhone: "Phone", ctEmail: "Email", cancel: "Cancel" },
+  mt: { name: "Malti", idle: "Agħfas iċ-ċirku u għid bonġu", idleWake: "Għid “Domestica” jew agħfas iċ-ċirku", intro: "Staqsi dwar kull biċċa fis-showroom – prezzijiet, qisien, kuluri u offerti – jew ibbukkja konsultazzjoni b'xejn.", connecting: "Qed nikkonnettja…", listening: "Qed nisma'…", speaking: "Domestica qed titkellem…", add: "Żid mal-lista tiegħi", added: "Fil-lista tiegħek ✓", view: "Ara fuq il-websajt", checkout: "Kompli għall-ħlas →", mylist: "Il-lista tiegħi", item: "oġġett", items: "oġġetti", remove: "Neħħi", type: "Ikteb minflok", hidekb: "Aħbi t-tastiera", end: "Temm il-konversazzjoni", send: "Ibgħat", typeph: "Ikteb il-messaġġ tiegħek…", you: "Int: ", thanks: "Grazzi talli żort lil Domestica", scanCard: "Skennja biex tarah fuq il-mowbajl", scanList: "Skennja biex tħallas il-lista fuq il-mowbajl", scanLink: "Skennja bil-kamera tal-mowbajl", qty: "Kwantità", ctTitle: "Id-dettalji tiegħek", ctNote: "Iktibhom biex inniżżluhom eżatt. Jintużaw biss mit-tim tagħna biex jikkuntattjawk.", ctName: "L-ewwel isem", ctPhone: "Telefon", ctEmail: "Email", cancel: "Ikkanċella" },
+  it: { name: "Italiano", idle: "Tocca il cerchio e saluta", idleWake: "Di' “Domestica” o tocca il cerchio", intro: "Chiedi di qualsiasi pezzo dello showroom – prezzi, misure, colori, offerte – o prenota una consulenza gratuita.", connecting: "Connessione…", listening: "Ti ascolto…", speaking: "Domestica sta parlando…", add: "Aggiungi alla mia lista", added: "Nella tua lista ✓", view: "Vedi sul sito", checkout: "Vai al pagamento →", mylist: "La mia lista", item: "articolo", items: "articoli", remove: "Rimuovi", type: "Scrivi invece", hidekb: "Nascondi tastiera", end: "Termina conversazione", send: "Invia", typeph: "Scrivi il tuo messaggio…", you: "Tu: ", thanks: "Grazie per aver visitato Domestica", scanCard: "Scansiona per vederlo sul telefono", scanList: "Scansiona per pagare la lista sul telefono", scanLink: "Scansiona con la fotocamera del telefono", qty: "Quantità", ctTitle: "I tuoi dati", ctNote: "Scrivili così li registriamo esattamente. Usati solo dal nostro team per ricontattarti.", ctName: "Nome", ctPhone: "Telefono", ctEmail: "Email", cancel: "Annulla" },
+  fr: { name: "Français", idle: "Touchez le cercle et dites bonjour", idleWake: "Dites « Domestica » ou touchez le cercle", intro: "Posez vos questions sur n'importe quel article du showroom – prix, dimensions, couleurs, offres – ou réservez une consultation gratuite.", connecting: "Connexion…", listening: "Je vous écoute…", speaking: "Domestica parle…", add: "Ajouter à ma liste", added: "Dans votre liste ✓", view: "Voir sur le site", checkout: "Passer au paiement →", mylist: "Ma liste", item: "article", items: "articles", remove: "Retirer", type: "Écrire plutôt", hidekb: "Masquer le clavier", end: "Terminer la conversation", send: "Envoyer", typeph: "Écrivez votre message…", you: "Vous : ", thanks: "Merci de votre visite chez Domestica", scanCard: "Scannez pour le voir sur votre téléphone", scanList: "Scannez pour payer votre liste sur votre téléphone", scanLink: "Scannez avec l'appareil photo de votre téléphone", qty: "Quantité", ctTitle: "Vos coordonnées", ctNote: "Saisissez-les pour qu'elles soient exactes. Utilisées uniquement par notre équipe pour vous recontacter.", ctName: "Prénom", ctPhone: "Téléphone", ctEmail: "E-mail", cancel: "Annuler" },
+  de: { name: "Deutsch", idle: "Tippen Sie auf den Kreis und sagen Sie Hallo", idleWake: "Sagen Sie „Domestica“ oder tippen Sie auf den Kreis", intro: "Fragen Sie nach jedem Stück im Showroom – Preise, Maße, Farben, Angebote – oder buchen Sie eine kostenlose Beratung.", connecting: "Verbinde…", listening: "Ich höre zu…", speaking: "Domestica spricht…", add: "Zu meiner Liste", added: "In Ihrer Liste ✓", view: "Auf der Website ansehen", checkout: "Zur Kasse →", mylist: "Meine Liste", item: "Artikel", items: "Artikel", remove: "Entfernen", type: "Lieber schreiben", hidekb: "Tastatur ausblenden", end: "Gespräch beenden", send: "Senden", typeph: "Ihre Nachricht…", you: "Sie: ", thanks: "Danke für Ihren Besuch bei Domestica", scanCard: "Scannen, um es auf dem Handy zu sehen", scanList: "Scannen, um Ihre Liste auf dem Handy zu bezahlen", scanLink: "Mit der Handykamera scannen", qty: "Menge", ctTitle: "Ihre Kontaktdaten", ctNote: "Bitte eintippen, damit alles genau stimmt. Nur unser Team nutzt sie für die Rückmeldung.", ctName: "Vorname", ctPhone: "Telefon", ctEmail: "E-Mail", cancel: "Abbrechen" },
+  es: { name: "Español", idle: "Toque el círculo y salude", idleWake: "Diga «Domestica» o toque el círculo", intro: "Pregunte por cualquier pieza del showroom – precios, medidas, colores, ofertas – o reserve una consulta gratuita.", connecting: "Conectando…", listening: "Escuchando…", speaking: "Domestica está hablando…", add: "Añadir a mi lista", added: "En su lista ✓", view: "Ver en la web", checkout: "Ir a pagar →", mylist: "Mi lista", item: "artículo", items: "artículos", remove: "Quitar", type: "Escribir", hidekb: "Ocultar teclado", end: "Terminar conversación", send: "Enviar", typeph: "Escriba su mensaje…", you: "Usted: ", thanks: "Gracias por visitar Domestica", scanCard: "Escanee para verlo en su móvil", scanList: "Escanee para pagar su lista en el móvil", scanLink: "Escanee con la cámara del móvil", qty: "Cantidad", ctTitle: "Sus datos", ctNote: "Escríbalos para que queden exactos. Solo los usa nuestro equipo para contactarle.", ctName: "Nombre", ctPhone: "Teléfono", ctEmail: "Email", cancel: "Cancelar" },
+  pl: { name: "Polski", idle: "Dotknij koła i przywitaj się", idleWake: "Powiedz „Domestica” lub dotknij koła", intro: "Zapytaj o dowolny mebel w salonie – ceny, wymiary, kolory, promocje – lub umów bezpłatną konsultację.", connecting: "Łączenie…", listening: "Słucham…", speaking: "Domestica mówi…", add: "Dodaj do mojej listy", added: "Na Twojej liście ✓", view: "Zobacz na stronie", checkout: "Przejdź do kasy →", mylist: "Moja lista", item: "produkt", items: "produkty", remove: "Usuń", type: "Napisz zamiast", hidekb: "Ukryj klawiaturę", end: "Zakończ rozmowę", send: "Wyślij", typeph: "Wpisz wiadomość…", you: "Ty: ", thanks: "Dziękujemy za wizytę w Domestica", scanCard: "Zeskanuj, aby zobaczyć na telefonie", scanList: "Zeskanuj, aby zapłacić za listę na telefonie", scanLink: "Zeskanuj aparatem telefonu", qty: "Ilość", ctTitle: "Twoje dane", ctNote: "Wpisz je, abyśmy zapisali je dokładnie. Używa ich tylko nasz zespół do kontaktu.", ctName: "Imię", ctPhone: "Telefon", ctEmail: "E-mail", cancel: "Anuluj" }
+};
+const LANG_KEY = "domLang";
+const _ql = new URLSearchParams(location.search).get("lang");
+let LANG = (I18N[_ql] && _ql) || (() => { try { const s = localStorage.getItem(LANG_KEY); if (I18N[s]) return s; } catch(e){} const n = (navigator.language || "en").slice(0, 2).toLowerCase(); return I18N[n] ? n : "en"; })();
+const T = (k) => (I18N[LANG] && I18N[LANG][k]) || I18N.en[k] || k;
+
 let Conversation = null, QRCode = null;
 const loadSDK = () => Conversation ? Promise.resolve(Conversation) : import("https://cdn.jsdelivr.net/npm/@elevenlabs/client/+esm").then(m => (Conversation = m.Conversation));
 const loadQR = () => QRCode ? Promise.resolve(QRCode) : import("https://cdn.jsdelivr.net/npm/qrcode@1.5.4/+esm").then(m => (QRCode = m.default));
@@ -265,16 +287,16 @@ function renderTray(){
   tr.hidden = false; document.body.classList.add("has-tray");
   const n = LIST.reduce((k, x) => k + x.q, 0), tot = LIST.reduce((k, x) => k + x.p * x.q, 0);
   const info = document.createElement("button"); info.type = "button"; info.className = "ti";
-  info.textContent = "My list · " + n + (n === 1 ? " item" : " items") + " · " + eur(tot); info.onclick = () => tr.classList.toggle("open");
+  info.textContent = T("mylist") + " · " + n + " " + (n === 1 ? T("item") : T("items")) + " · " + eur(tot); info.onclick = () => tr.classList.toggle("open");
   const det = document.createElement("div"); det.className = "td";
-  LIST.forEach(x => { const r = document.createElement("div"); r.className = "tr"; const s = document.createElement("span"); s.textContent = x.q + " × " + x.t; const rm = document.createElement("button"); rm.type = "button"; rm.textContent = "Remove"; rm.onclick = () => listRemove(x.id); r.append(s, rm); det.appendChild(r); });
+  LIST.forEach(x => { const r = document.createElement("div"); r.className = "tr"; const s = document.createElement("span"); s.textContent = x.q + " × " + x.t; const rm = document.createElement("button"); rm.type = "button"; rm.textContent = T("remove"); rm.onclick = () => listRemove(x.id); r.append(s, rm); det.appendChild(r); });
   tr.append(info, det);
   if (KIOSK) {
     const qr = document.createElement("div"); qr.className = "tq"; const qi = document.createElement("img"); qi.alt = "Scan to check out on your phone";
     loadQR().then(Q => Q.toDataURL(checkoutUrl("screen_qr"), { margin: 1, width: 260 })).then(u => qi.src = u).catch(() => qr.remove());
-    const qt = document.createElement("span"); qt.textContent = "Scan to take your list to checkout on your phone"; qr.append(qi, qt); tr.appendChild(qr);
+    const qt = document.createElement("span"); qt.textContent = T("scanList"); qr.append(qi, qt); tr.appendChild(qr);
   } else {
-    const go = document.createElement("a"); go.className = "tg"; go.href = checkoutUrl(); go.target = "_blank"; go.rel = "noopener"; go.textContent = "Go to checkout →";
+    const go = document.createElement("a"); go.className = "tg"; go.href = checkoutUrl(); go.target = "_blank"; go.rel = "noopener"; go.textContent = T("checkout");
     go.onclick = () => { setTimeout(() => { LIST = []; saveList(); renderTray(); }, 1500); };
     tr.appendChild(go);
   }
@@ -334,26 +356,26 @@ function showProducts({ items, names, clear }){
       const mi = document.createElement("button"); mi.type = "button"; mi.textContent = "−"; mi.setAttribute("aria-label", "One less");
       const qv = document.createElement("b"); qv.textContent = q;
       const pl = document.createElement("button"); pl.type = "button"; pl.textContent = "+"; pl.setAttribute("aria-label", "One more");
-      const ql = document.createElement("span"); ql.textContent = "Quantity";
+      const ql = document.createElement("span"); ql.textContent = T("qty");
       qd.append(ql, mi, qv, pl); b.appendChild(qd);
       mi.onclick = () => { q = Math.max(1, q - 1); qv.textContent = q; };
       pl.onclick = () => { q = Math.min(50, q + 1); qv.textContent = q; };
     }
     const a = document.createElement("div"); a.className = "acts";
     if (buyable) {
-      const add = document.createElement("button"); add.type = "button"; add.className = "buy"; add.textContent = inList(c.vid) ? "In your list ✓" : "Add to my list";
-      add.onclick = () => { listAdd(c, q); add.textContent = "In your list ✓"; };
-      paintHooks.push(() => { add.textContent = inList(c.vid) ? "In your list ✓" : "Add to my list"; });
+      const add = document.createElement("button"); add.type = "button"; add.className = "buy"; add.textContent = inList(c.vid) ? T("added") : T("add");
+      add.onclick = () => { listAdd(c, q); add.textContent = T("added"); };
+      paintHooks.push(() => { add.textContent = inList(c.vid) ? T("added") : T("add"); });
       a.appendChild(add);
     }
-    if (!KIOSK) { const l1 = document.createElement("a"); l1.href = purlOf(); paintHooks.push(() => { l1.href = purlOf(); }); l1.target = "_blank"; l1.rel = "noopener"; l1.textContent = "View on website"; a.appendChild(l1); }
+    if (!KIOSK) { const l1 = document.createElement("a"); l1.href = purlOf(); paintHooks.push(() => { l1.href = purlOf(); }); l1.target = "_blank"; l1.rel = "noopener"; l1.textContent = T("view"); a.appendChild(l1); }
     b.appendChild(a);
     if (KIOSK) {
       const qr = document.createElement("div"); qr.className = "qr";
       const qi = document.createElement("img"); qi.alt = "Scan to open on your phone";
       const drawQR = () => loadQR().then(Q => Q.toDataURL(purlOf().replace("utm_medium=" + encodeURIComponent(SRC), "utm_medium=screen_qr"), { margin: 1, width: 200 }).then(u => qi.src = u)).catch(() => { qr.remove(); });
       drawQR(); paintHooks.push(drawQR);
-      const qt = document.createElement("span"); qt.textContent = "Scan to see it on your phone";
+      const qt = document.createElement("span"); qt.textContent = T("scanCard");
       qr.appendChild(qi); qr.appendChild(qt); b.appendChild(qr);
     }
     d.appendChild(b); box.appendChild(d); paint();
@@ -397,7 +419,7 @@ function showLink({ kind }){
   if (KIOSK && /^https/.test(href)) {
     const q = document.createElement("div"); q.className = "qr"; const qi = document.createElement("img"); qi.alt = "Scan with your phone";
     loadQR().then(Q => Q.toDataURL(href, { margin: 1, width: 240 })).then(u => qi.src = u).catch(() => q.remove());
-    const qt = document.createElement("span"); qt.textContent = "Scan with your phone camera"; q.append(qi, qt); b.appendChild(q);
+    const qt = document.createElement("span"); qt.textContent = T("scanLink"); q.append(qi, qt); b.appendChild(q);
   } else {
     const a = document.createElement("div"); a.className = "acts";
     const l = document.createElement("a"); l.className = "buy"; l.href = href; l.textContent = btn; if (/^https/.test(href)) { l.target = "_blank"; l.rel = "noopener"; }
@@ -421,7 +443,7 @@ const src = SRC;
 // Wake word: say "Domestica" (like "Hey Siri") to start, on the showroom screen (?kiosk=1) or with ?wake=1
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 const WAKE = !!SR && (KIOSK || _q.get("wake") === "1");
-const IDLE_TXT = WAKE ? "Say “Domestica” or tap the orb" : "Tap the orb and say hello";
+const idleTxt = () => T(WAKE ? "idleWake" : "idle");
 let rec = null, recOn = false;
 function wakeStop(){ clearTimeout(S.wakeTimer); recOn = false; if (rec) { try { rec.abort(); } catch(e){} } }
 function wakeListen(){
@@ -462,18 +484,18 @@ function finish(id, msg){
   clearTimeout(S.connTimer); cancelAnimationFrame(S.raf);
   if (c) { try { c.endSession(); } catch(e){} }           // releases the microphone
   document.documentElement.style.setProperty("--lvl", 0);
-  setState("", msg || IDLE_TXT);
-  $("end").hidden = true; $("typebtn").hidden = true; $("typebtn").textContent = "Type instead"; $("typebar").hidden = true; document.body.classList.remove("typing"); closeContact();
+  setState("", msg || idleTxt());
+  $("end").hidden = true; $("typebtn").hidden = true; $("typebtn").textContent = T("type"); $("typebar").hidden = true; document.body.classList.remove("typing"); closeContact();
   clearTimeout(S.idleTimer);
-  S.idleTimer = setTimeout(() => { if (KIOSK) { LIST = []; saveList(); renderTray(); } SHOWN = []; $("cards").textContent = ""; document.body.classList.remove("has-cards", "multi"); $("sub").textContent = "Ask about any piece in the showroom – prices, sizes, colours, offers – or book a free consultation."; }, KIOSK ? 45000 : 8000);
+  S.idleTimer = setTimeout(() => { if (KIOSK) { LIST = []; saveList(); LANG = (I18N[_ql] && _ql) || "en"; applyLang(); } SHOWN = []; $("cards").textContent = ""; document.body.classList.remove("has-cards", "multi"); $("sub").textContent = T("intro"); }, KIOSK ? 45000 : 8000);
   S.wakeTimer = setTimeout(wakeListen, 1500);
 }
-const stop = (msg) => finish(S.id, msg || "Thanks for visiting Domestica");
+const stop = (msg) => finish(S.id, msg || T("thanks"));
 async function start(){
   if (busy()) return;
   const id = ++S.id; S.phase = "starting";
   wakeStop(); clearTimeout(S.idleTimer);
-  setState("connecting", "Connecting…");
+  setState("connecting", T("connecting"));
   $("sub").textContent = "";
   S.connTimer = setTimeout(() => finish(id, MSG_DOWN), 20000);   // never hang on "Connecting…"
   try {
@@ -487,21 +509,22 @@ async function start(){
     const c = await Conversation.startSession({
       agentId: AGENT,
       connectionType: "webrtc",
+      overrides: LANG !== "en" ? { agent: { language: LANG } } : undefined,
       dynamicVariables: { source: src, device: DEVICE, on_screen: SHOWN.length && document.body.classList.contains("has-cards") ? SHOWN.join("; ") : "nothing", my_list: LIST.length ? listSummary() : "empty" },
       clientTools: { show_products: showProducts, show_link: showLink, manage_list: manageList, show_contact_form: showContactForm },
-      onDisconnect: guard((d) => finish(id, d && d.reason === "error" ? MSG_DOWN : "Thanks for visiting Domestica")),
+      onDisconnect: guard((d) => finish(id, d && d.reason === "error" ? MSG_DOWN : T("thanks"))),
       onError: guard((e) => { console.error(e); finish(id, "Sorry, something went wrong – tap to try again"); }),
-      onModeChange: guard(({ mode }) => { if (S.phase === "live") setState(mode === "speaking" ? "speaking" : "listening", mode === "speaking" ? "Domestica is speaking…" : "Listening…"); }),
+      onModeChange: guard(({ mode }) => { if (S.phase === "live") setState(mode === "speaking" ? "speaking" : "listening", mode === "speaking" ? T("speaking") : T("listening")); }),
       onMessage: guard(({ message, source }) => {
         const el = $("sub"); el.textContent = "";
-        if (source === "user") { const s = document.createElement("span"); s.className = "you"; s.textContent = "You: " + message; el.appendChild(s); }
+        if (source === "user") { const s = document.createElement("span"); s.className = "you"; s.textContent = T("you") + message; el.appendChild(s); }
         else el.textContent = message;
         el.scrollTop = el.scrollHeight;
       })
     });
     if (id !== S.id || S.phase !== "starting") { try { c.endSession(); } catch(e){} return; }  // cancelled or timed out meanwhile
     S.conv = c; S.phase = "live"; clearTimeout(S.connTimer);
-    $("end").hidden = false; $("typebtn").hidden = false; setState("listening", "Listening…"); loop();
+    $("end").hidden = false; $("typebtn").hidden = false; setState("listening", T("listening")); loop();
   } catch (e) {
     console.error(e);
     finish(id, e && e.name === "NotAllowedError" ? "Please allow the microphone, then tap the orb" : MSG_DOWN);
@@ -525,10 +548,10 @@ function sendText(t, shown){
   t = String(t || "").trim();
   if (!t || S.phase !== "live" || !S.conv || typeof S.conv.sendUserMessage !== "function") return false;
   try { S.conv.sendUserMessage(t); } catch(e) { return false; }
-  const el = $("sub"); el.textContent = ""; const sp = document.createElement("span"); sp.className = "you"; sp.textContent = "You: " + (shown || t); el.appendChild(sp);
+  const el = $("sub"); el.textContent = ""; const sp = document.createElement("span"); sp.className = "you"; sp.textContent = T("you") + (shown || t); el.appendChild(sp);
   return true;
 }
-$("typebtn").addEventListener("click", () => { const f = $("typebar"); f.hidden = !f.hidden; $("typebtn").textContent = f.hidden ? "Type instead" : "Hide keyboard"; document.body.classList.toggle("typing", !f.hidden); if (!f.hidden) $("tb-in").focus(); });
+$("typebtn").addEventListener("click", () => { const f = $("typebar"); f.hidden = !f.hidden; $("typebtn").textContent = f.hidden ? T("type") : T("hidekb"); document.body.classList.toggle("typing", !f.hidden); if (!f.hidden) $("tb-in").focus(); });
 $("tb-in").addEventListener("input", () => { try { S.conv && S.conv.sendUserActivity && S.conv.sendUserActivity(); } catch(e){} });
 $("typebar").addEventListener("submit", (e) => { e.preventDefault(); if (sendText($("tb-in").value)) $("tb-in").value = ""; });
 $("ct-cc").addEventListener("change", () => { $("ct-ccx").hidden = $("ct-cc").value !== ""; if (!$("ct-ccx").hidden) $("ct-ccx").focus(); });
@@ -558,6 +581,22 @@ function showContactForm(){
   openContact();
   return "The contact form is now open on the client's screen with fields for first name, phone (with a country code picker, Malta +356 by default) and email. Tell them they can type their details there or just say them. When they send it you will receive their exact details as a message.";
 }
+function applyLang(){
+  document.documentElement.lang = LANG;
+  document.querySelectorAll("[data-t]").forEach(el => { el.textContent = T(el.dataset.t); });
+  $("tb-in").placeholder = T("typeph");
+  if (S.phase === "idle") { $("status").textContent = idleTxt(); if (!document.body.classList.contains("has-cards")) $("sub").textContent = T("intro"); }
+  $("langs").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.l === LANG)));
+  renderTray();
+}
+(function buildLangs(){
+  const box = $("langs");
+  Object.keys(I18N).forEach(code => {
+    const b = document.createElement("button"); b.type = "button"; b.dataset.l = code; b.lang = code; b.textContent = I18N[code].name;
+    b.addEventListener("click", () => { LANG = code; if (!KIOSK) { try { localStorage.setItem(LANG_KEY, code); } catch(e){} } applyLang(); });
+    box.appendChild(b);
+  });
+})();
 function begin(){ if (KIOSK || hasConsent()) start(); else showPrivacy(start); }
 $("orb").addEventListener("click", () => {
   if (KIOSK && !document.fullscreenElement) { try { document.documentElement.requestFullscreen(); } catch(e){} }
@@ -570,8 +609,8 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") { if (!$("
 // Save credits and free the mic: stop the call when the visitor leaves the page or locks the phone
 document.addEventListener("visibilitychange", () => { if (document.hidden) { wakeStop(); if (busy()) stop(); } else wakeListen(); });
 window.addEventListener("pagehide", () => { wakeStop(); if (busy()) stop(); });
-if (WAKE) { $("status").textContent = IDLE_TXT; if (KIOSK || hasConsent()) navigator.mediaDevices.getUserMedia({ audio: true }).then(st => { st.getTracks().forEach(t => t.stop()); wakeListen(); }).catch(() => {}); }
-renderTray();
+if (WAKE) { $("status").textContent = idleTxt(); if (KIOSK || hasConsent()) navigator.mediaDevices.getUserMedia({ audio: true }).then(st => { st.getTracks().forEach(t => t.stop()); wakeListen(); }).catch(() => {}); }
+applyLang();
 window.__dom.showContactForm = () => showContactForm();
 window.__dom.state = () => ({ phase: S.phase, id: S.id, wake: recOn });
 </script>
