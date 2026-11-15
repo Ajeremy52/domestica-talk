@@ -47,6 +47,9 @@ body.listening #orb .core,body.speaking #orb .core{animation:none}
 .pc{width:min(26vw,300px);background:rgba(255,255,255,.06);border:1px solid rgba(191,243,214,.2);border-radius:18px;overflow:hidden;text-align:left;animation:pin .5s ease-out both}
 .pc img{width:100%;aspect-ratio:4/3;object-fit:contain;padding:8px;background:#fff;display:block}
 .pc .b{padding:12px 14px}
+.pc.lk{width:min(86vw,420px)}
+.pc.lk .p{font-size:clamp(14px,1.3vw,18px);color:#cfe9dc;font-weight:600}
+.pc.lk .acts a{padding:12px 8px;font-size:15px}
 .pc .ph{width:100%;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;background:#f3f1ec;color:#1f6f53;font-weight:700;letter-spacing:.4em;font-size:13px}
 .pc .t{font-weight:600;font-size:clamp(14px,1.4vw,18px);line-height:1.3}
 .pc .p{margin-top:6px;font-size:clamp(16px,1.6vw,22px);font-weight:700;color:#9fe0b8}
@@ -194,7 +197,50 @@ function showProducts({ names }){
   const shownTxt = picks.map(([c, q]) => c.t + (q > 1 ? " x" + q : "") + (c.price ? " (" + eur(c.price) + ")" : " (price on request)")).join("; ");
   return "Now on the screen: " + shownTxt + "." + (missing.length ? " Not found: " + missing.join("; ") + "." : "");
 }
-window.__dom = { showProducts, cat: () => CAT.length };
+const LINKS = {
+  directions_showroom: ["Domestica Showroom", "Valley Road, Msida · Mon–Fri 09:00–13:00, 15:30–19:30 · Sat 09:00–13:00", "Get directions", "https://www.google.com/maps/place/?q=place_id:ChIJIxX4OqxaDhMReQlS1E4-gZw"],
+  directions_factory: ["Domestica Factory", "Attard Industrial Estate, Triq L-Imdina, Attard · visits by appointment", "Get directions", "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent("Domestica, Attard Industrial Estate, Triq L-Imdina, Attard, Malta")],
+  call: ["Call Domestica", "+356 2144 7604", "Call now", "tel:+35621447604"],
+  email: ["Email Domestica", "info@domestica.com.mt", "Write an email", "mailto:info@domestica.com.mt"],
+  facebook: ["Domestica on Facebook", "facebook.com/domesticamt", "Open Facebook", "https://www.facebook.com/domesticamt/"],
+  instagram: ["Domestica on Instagram", "@domestica.mt", "Open Instagram", "https://instagram.com/domestica.mt"],
+  youtube: ["Domestica on YouTube", "Domestica Malta Furniture", "Open YouTube", "https://www.youtube.com/@DomesticaMaltaFurniture"],
+  page_delivery: ["Delivery", "Malta & Gozo · free over €500", "Read delivery policy", SITE_ + "/pages/delivery"],
+  page_returns: ["Returns & refunds", "14 days for online orders", "Read returns policy", SITE_ + "/pages/returns"],
+  page_warranty: ["Warranty", "2-year legal guarantee", "Read warranty", SITE_ + "/pages/warranty"],
+  page_catalogues: ["Brand catalogues", "VAMA kitchens · Rocket Espresso", "Open catalogues", SITE_ + "/pages/catalogues"],
+  page_bespoke: ["Bespoke furniture", "Made in our Attard factory · free design consultation", "See bespoke", SITE_ + "/pages/bespoke"],
+  page_kitchens: ["Kitchens", "Pedini & VAMA, made to measure", "See kitchens", SITE_ + "/pages/kitchens"],
+  page_sofas: ["Sofas", "Egoitaliano made to order · ready-to-deliver online", "See sofas", SITE_ + "/pages/sofas"],
+  page_home_packages: ["Home package", "Kitchen, TV unit, bedroom and sofa in one", "See the package", SITE_ + "/pages/home-packages"],
+  page_contact: ["Contact & appointments", "Book a consultation or get in touch", "Open contact page", SITE_ + "/pages/contact"],
+  page_about: ["About Domestica", "Family makers since 1969", "Our story", SITE_ + "/pages/about-us"]
+};
+function showLink({ kind }){
+  const L = LINKS[kind]; if (!L) return "Unknown link type " + kind;
+  const [title, sub, btn, href0] = L;
+  const tag = /^https:\/\/www\.domestica/.test(href0) ? (href0.includes("?") ? "&" : "?") + "utm_source=showroom_assistant&utm_medium=" + encodeURIComponent(SRC) + "&utm_campaign=voice_assistant" : "";
+  const href = href0 + tag;
+  const box = $("cards"); box.textContent = ""; document.body.classList.remove("multi");
+  const d = document.createElement("div"); d.className = "pc lk";
+  const b = document.createElement("div"); b.className = "b";
+  const t = document.createElement("div"); t.className = "t"; t.textContent = title;
+  const p = document.createElement("div"); p.className = "p"; p.textContent = sub;
+  b.append(t, p);
+  if (KIOSK && /^https/.test(href)) {
+    const q = document.createElement("div"); q.className = "qr"; const qi = document.createElement("img"); qi.alt = "Scan with your phone";
+    loadQR().then(Q => Q.toDataURL(href, { margin: 1, width: 240 })).then(u => qi.src = u).catch(() => q.remove());
+    const qt = document.createElement("span"); qt.textContent = "Scan with your phone camera"; q.append(qi, qt); b.appendChild(q);
+  } else {
+    const a = document.createElement("div"); a.className = "acts";
+    const l = document.createElement("a"); l.className = "buy"; l.href = href; l.textContent = btn; if (/^https/.test(href)) { l.target = "_blank"; l.rel = "noopener"; }
+    a.appendChild(l); b.appendChild(a);
+  }
+  d.appendChild(b); box.appendChild(d);
+  document.body.classList.add("has-cards");
+  return "Now on the screen: " + title + " (" + sub + ") with a '" + (KIOSK ? "scan this code" : btn) + "' " + (KIOSK ? "QR code" : "button") + ".";
+}
+window.__dom = { showProducts, showLink, cat: () => CAT.length };
 let conv = null, raf = 0, idleTimer = 0, starting = false;
 // Wake word: say "Domestica" (like "Hey Siri") to start, on the showroom screen (?kiosk=1) or with ?wake=1
 const QS = new URLSearchParams(location.search);
@@ -253,7 +299,7 @@ async function start(){
       agentId: AGENT,
       connectionType: "webrtc",
       dynamicVariables: { source: src, device: DEVICE },
-      clientTools: { show_products: showProducts },
+      clientTools: { show_products: showProducts, show_link: showLink },
       onConnect: () => { $("end").hidden = false; loop(); },
       onDisconnect: (d) => reset(d && d.reason === "error" ? "The assistant isn't available right now – please ask anyone at the front desk" : "Thanks for visiting Domestica"),
       onError: (e) => { console.error(e); reset("Sorry, something went wrong – tap to try again"); },
