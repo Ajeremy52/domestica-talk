@@ -58,6 +58,7 @@ body.listening #orb .core,body.speaking #orb .core{animation:none}
 .pc .acts{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .pc .acts a{flex:1;text-align:center;text-decoration:none;font-size:13px;font-weight:700;border-radius:10px;padding:8px 6px;border:1px solid rgba(191,243,214,.35);color:#dff5e8}
 .pc .acts a.buy{background:#9fe0b8;color:#0f2a1f;border-color:#9fe0b8}
+.pc .vsel{margin-top:8px;width:100%;font:600 14px Inter,system-ui;padding:8px 10px;border-radius:10px;border:1px solid rgba(191,243,214,.35);background:#14352a;color:#eef6f1}
 .pc .qty{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#bcd3c7}
 .pc .qty button{width:30px;height:30px;border-radius:8px;border:1px solid rgba(191,243,214,.35);background:transparent;color:#dff5e8;font-size:18px;line-height:1;cursor:pointer}
 .pc .qty b{min-width:22px;text-align:center;color:#fff}
@@ -133,7 +134,9 @@ const norm = t => String(t||"").toLowerCase().replace(/[–—-]/g," ").replace(
         if (x.product_type === "Bespoke Components") continue;
         const v = x.variants || []; const pr = Math.min(...v.map(a => +a.price || 0));
         const cmp = Math.max(0, ...v.map(a => +a.compare_at_price || 0));
-        CAT.push({ t: x.title, n: norm(x.title), h: x.handle, img: (x.images && x.images[0] && x.images[0].src) || "", price: pr, was: cmp > pr ? cmp : 0, avail: v.some(a => a.available), vid: ((v.find(a => a.available) || v[0] || {}).id) || 0 });
+        const img0 = (x.images && x.images[0] && x.images[0].src) || "";
+        const vs = v.map(a => ({ id: a.id, t: (a.title === "Default Title" ? "" : a.title), n: norm(a.title === "Default Title" ? "" : a.title), price: +a.price || 0, was: (+a.compare_at_price > +a.price ? +a.compare_at_price : 0), avail: !!a.available, img: (a.featured_image && a.featured_image.src) || img0 }));
+        CAT.push({ t: x.title, n: norm(x.title), h: x.handle, img: img0, price: pr, was: cmp > pr ? cmp : 0, avail: v.some(a => a.available), vid: ((v.find(a => a.available) || v[0] || {}).id) || 0, vs });
       }
       if (ps.length < 250) break;
     }
@@ -150,6 +153,19 @@ function best(name){
   }
   return sc >= .45 ? top : null;
 }
+function view(c, raw, vidPick){
+  if (!c) return null;
+  const vs = c.vs || []; let v = null;
+  if (vidPick) v = vs.find(x => x.id === vidPick);
+  if (!v && raw && vs.length > 1) {
+    const rt = norm(raw).split(" ").filter(w => w && !c.n.split(" ").includes(w));
+    let bs = 0;
+    for (const x of vs) { const vt = x.n.split(" ").filter(Boolean); let h = 0; for (const w of vt) if (rt.includes(w)) h++; const sc = h ? h / vt.length + h * .5 + (x.avail ? .01 : 0) : 0; if (sc > bs) { bs = sc; v = x; } }
+  }
+  if (!v) v = vs.find(x => x.avail) || vs[0];
+  if (!v) return Object.assign({}, c, { vt: "", label: c.t });
+  return { t: c.t, n: c.n, h: c.h, vs, base: c, vt: v.t, label: c.t + (v.t ? " – " + v.t : ""), vid: v.id, price: v.price, was: v.was, avail: v.avail, img: v.img || c.img };
+}
 const eur = n => { const v = Number(n); return "€" + v.toLocaleString("en-IE", Number.isInteger(v) ? { maximumFractionDigits: 0 } : { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
 // ---- My list: collect products during the chat, check out once at the end ----
 let LIST = []; try { LIST = JSON.parse(sessionStorage.getItem("domList") || "[]"); } catch(e) { LIST = []; }
@@ -158,7 +174,7 @@ const inList = vid => LIST.some(x => x.id === vid);
 function checkoutUrl(medium){
   return SITE_ + "/cart/add?" + LIST.map((x, i) => "items[" + i + "][id]=" + x.id + "&items[" + i + "][quantity]=" + x.q).join("&") + "&return_to=" + encodeURIComponent("/cart?utm_source=showroom_assistant&utm_medium=" + encodeURIComponent(medium || SRC) + "&utm_campaign=voice_assistant");
 }
-function listAdd(c, q){ const e = LIST.find(x => x.id === c.vid); if (e) e.q = q; else LIST.push({ id: c.vid, t: c.t, p: c.price, q }); saveList(); renderTray(); }
+function listAdd(c, q){ const e = LIST.find(x => x.id === c.vid); if (e) e.q = q; else LIST.push({ id: c.vid, t: c.label || c.t, p: c.price, q }); saveList(); renderTray(); }
 function listRemove(vid){ LIST = LIST.filter(x => x.id !== vid); saveList(); renderTray(); }
 function listSummary(){ if (!LIST.length) return "The list is empty."; const tot = LIST.reduce((n, x) => n + x.p * x.q, 0); return "List: " + LIST.map(x => x.t + (x.q > 1 ? " x" + x.q : "") + " (" + eur(x.p) + " each)").join("; ") + ". Total " + eur(tot) + "."; }
 function renderTray(){
@@ -189,10 +205,10 @@ function manageList({ action, names }){
   const done = [], miss = [];
   arr.forEach(raw => {
     let q = 1; const mq = raw.match(/\s*[x×]\s*(\d{1,2})\s*$/i); const nm = mq ? raw.slice(0, mq.index) : raw; if (mq) q = Math.max(1, Math.min(50, +mq[1]));
-    const c = best(nm); if (!c) { miss.push(nm); return; }
-    if (action === "remove") { listRemove(c.vid); done.push(c.t); return; }
-    if (!(c.price && c.avail && c.vid)) { miss.push(c.t + " (not sold online, a salesperson can help)"); return; }
-    listAdd(c, q); done.push(c.t + (q > 1 ? " x" + q : ""));
+    const c = view(best(nm), nm); if (!c) { miss.push(nm); return; }
+    if (action === "remove") { const hit = LIST.find(x => x.id === c.vid) || LIST.find(x => x.t.startsWith(c.t)); if (hit) { listRemove(hit.id); done.push(hit.t); } else miss.push(c.label + " (not in the list)"); return; }
+    if (!(c.price && c.avail && c.vid)) { miss.push(c.label + " (not sold online, a salesperson can help)"); return; }
+    listAdd(c, q); done.push(c.label + (q > 1 ? " x" + q : ""));
   });
   return (done.length ? (action === "remove" ? "Removed: " : "Added: ") + done.join("; ") + ". " : "") + (miss.length ? "Could not add: " + miss.join("; ") + ". " : "") + listSummary();
 }
@@ -201,23 +217,36 @@ function showProducts({ names }){
   const seen = new Set(), missing = [], picks = [];
   (Array.isArray(names) ? names : String(names||"").split(/[|;\n]/)).map(x=>String(x).trim()).filter(Boolean).slice(0,3).forEach(raw => {
     let q0 = 1; const mq = raw.match(/\s*[x×]\s*(\d{1,2})\s*$/i); const nm = mq ? raw.slice(0, mq.index) : raw; if (mq) q0 = Math.max(1, Math.min(50, +mq[1]));
-    const c = best(nm); if (!c) { missing.push(nm); return; } if (seen.has(c.h)) return; seen.add(c.h); picks.push([c, q0]);
+    const c = view(best(nm), nm); if (!c) { missing.push(nm); return; } if (seen.has(c.h + c.vid)) return; seen.add(c.h + c.vid); picks.push([c, q0]);
   });
   if (!picks.length) return CAT.length ? "Nothing new shown; the screen still shows the previous products. Not found: " + missing.join("; ") : "The product photos are not available right now; describe the products in words.";
   box.textContent = "";
   picks.forEach(([c, q0]) => {
     const d = document.createElement("div"); d.className = "pc";
     const ph = () => { const f = document.createElement("div"); f.className = "ph"; f.textContent = "DOMESTICA"; return f; };
-    if (c.img) { const i = document.createElement("img"); i.src = c.img + (c.img.includes("?") ? "&" : "?") + "width=600"; i.alt = c.t; i.onerror = () => i.replaceWith(ph()); d.appendChild(i); } else d.appendChild(ph());
+    const imgBox = document.createElement("div"); d.appendChild(imgBox);
     const b = document.createElement("div"); b.className = "b";
     const t = document.createElement("div"); t.className = "t"; t.textContent = c.t; b.appendChild(t);
-    const p = document.createElement("div"); p.className = "p"; p.textContent = c.price ? eur(c.price) : "Price on request";
-    if (c.was) { const w = document.createElement("s"); w.textContent = eur(c.was); p.appendChild(w); }
-    b.appendChild(p);
-    if (c.was) { const g = document.createElement("span"); g.className = "d"; g.textContent = "BLACK NOVEMBER"; b.appendChild(g); }
+    if (c.vs && c.vs.length > 1) {
+      const sel = document.createElement("select"); sel.className = "vsel"; sel.setAttribute("aria-label", "Choose colour or option");
+      c.vs.forEach(x => { const o = document.createElement("option"); o.value = x.id; o.textContent = x.t + (x.price !== c.price ? " · " + eur(x.price) : ""); if (x.id === c.vid) o.selected = true; sel.appendChild(o); });
+      sel.onchange = () => { Object.assign(c, view(c.base, "", +sel.value)); paint(); };
+      b.appendChild(sel);
+    }
+    const p = document.createElement("div"); p.className = "p"; b.appendChild(p);
+    const g = document.createElement("span"); g.className = "d"; g.textContent = "BLACK NOVEMBER"; b.appendChild(g);
+    let paintHooks = [];
+    function paint(){
+      imgBox.textContent = "";
+      if (c.img) { const i = document.createElement("img"); i.src = c.img + (c.img.includes("?") ? "&" : "?") + "width=600"; i.alt = c.label || c.t; i.onerror = () => i.replaceWith(ph()); imgBox.appendChild(i); } else imgBox.appendChild(ph());
+      p.textContent = c.price ? eur(c.price) : "Price on request";
+      if (c.was) { const w = document.createElement("s"); w.textContent = eur(c.was); p.appendChild(w); }
+      g.style.display = c.was ? "" : "none";
+      paintHooks.forEach(f => f());
+    }
     const SITE = SITE_;
     const utm = "utm_source=showroom_assistant&utm_medium=" + encodeURIComponent(SRC) + "&utm_campaign=voice_assistant";
-    const purl = SITE + "/products/" + c.h + "?" + utm;
+    const purlOf = () => SITE + "/products/" + c.h + "?" + (c.vid ? "variant=" + c.vid + "&" : "") + utm;
     const buyable = !!(c.price && c.avail && c.vid);
     let q = q0;
     if (buyable) {
@@ -234,21 +263,23 @@ function showProducts({ names }){
     if (buyable) {
       const add = document.createElement("button"); add.type = "button"; add.className = "buy"; add.textContent = inList(c.vid) ? "In your list ✓" : "Add to my list";
       add.onclick = () => { listAdd(c, q); add.textContent = "In your list ✓"; };
+      paintHooks.push(() => { add.textContent = inList(c.vid) ? "In your list ✓" : "Add to my list"; });
       a.appendChild(add);
     }
-    if (!KIOSK) { const l1 = document.createElement("a"); l1.href = purl; l1.target = "_blank"; l1.rel = "noopener"; l1.textContent = "View on website"; a.appendChild(l1); }
+    if (!KIOSK) { const l1 = document.createElement("a"); l1.href = purlOf(); paintHooks.push(() => { l1.href = purlOf(); }); l1.target = "_blank"; l1.rel = "noopener"; l1.textContent = "View on website"; a.appendChild(l1); }
     b.appendChild(a);
     if (KIOSK) {
       const qr = document.createElement("div"); qr.className = "qr";
       const qi = document.createElement("img"); qi.alt = "Scan to open on your phone";
-      loadQR().then(Q => Q.toDataURL(SITE + "/products/" + c.h + "?" + utm.replace(encodeURIComponent(SRC), "screen_qr"), { margin: 1, width: 200 }).then(u => qi.src = u)).catch(() => { qr.remove(); });
+      const drawQR = () => loadQR().then(Q => Q.toDataURL(purlOf().replace("utm_medium=" + encodeURIComponent(SRC), "utm_medium=screen_qr"), { margin: 1, width: 200 }).then(u => qi.src = u)).catch(() => { qr.remove(); });
+      drawQR(); paintHooks.push(drawQR);
       const qt = document.createElement("span"); qt.textContent = "Scan to see it on your phone";
       qr.appendChild(qi); qr.appendChild(qt); b.appendChild(qr);
     }
-    d.appendChild(b); box.appendChild(d);
+    d.appendChild(b); box.appendChild(d); paint();
   });
   document.body.classList.toggle("has-cards", !!box.children.length);
-  const shownTxt = picks.map(([c, q]) => c.t + (q > 1 ? " x" + q : "") + (c.price ? " (" + eur(c.price) + ")" : " (price on request)")).join("; ");
+  const shownTxt = picks.map(([c, q]) => (c.label || c.t) + (q > 1 ? " x" + q : "") + (c.price ? " (" + eur(c.price) + ")" : " (price on request)")).join("; ");
   return "Now on the screen: " + shownTxt + "." + (missing.length ? " Not found: " + missing.join("; ") + "." : "");
 }
 const LINKS = {
