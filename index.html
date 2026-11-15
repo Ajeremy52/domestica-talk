@@ -14,6 +14,7 @@
 <link rel="icon" type="image/png" href="favicon.png">
 <meta name="description" content="Domestica showroom assistant">
 
+<meta name="build" content="2026-11-15b">
 <meta name="robots" content="noindex,nofollow">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -198,7 +199,7 @@ function showProducts({ names }){
   return "Now on the screen: " + shownTxt + "." + (missing.length ? " Not found: " + missing.join("; ") + "." : "");
 }
 const LINKS = {
-  directions_showroom: ["Domestica Showroom", "Valley Road, Msida · Mon–Fri 09:00–13:00, 15:30–19:30 · Sat 09:00–13:00", "Get directions", "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent("Domestica, Valley Road, Msida, Malta") + "&destination_place_id=ChIJIxX4OqxaDhMReQlS1E4-gZw"],
+  directions_showroom: ["Domestica Showroom", "Valley Road, Msida · Mon–Fri 09:00–13:00, 15:30–19:30 · Sat 09:00–13:00", "Get directions", "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent("Domestica, Triq Il-Wied Ta' L-Imsida, Msida, Malta")],
   directions_factory: ["Domestica Factory", "Attard Industrial Estate, Triq L-Imdina, Attard · visits by appointment", "Get directions", "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent("Domestica, Attard Industrial Estate, Triq L-Imdina, Attard, Malta")],
   call: ["Call Domestica", "+356 2144 7604", "Call now", "tel:+35621447604"],
   email: ["Email Domestica", "info@domestica.com.mt", "Write an email", "mailto:info@domestica.com.mt"],
