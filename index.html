@@ -240,10 +240,13 @@ function resolve(e){
     let c = BYH.get(ref) || BYV.get(ref) || null, how = "ref";
     if (!c) { c = best(String(e.name || ref).replace(/-/g, " ")); how = "name"; }
     if (!c) return { c: null, q, nm: e.name || ref || "?" };
-    let vp = 0;
+    let vp = 0, optMiss = "";
     if (BYV.get(ref) === c) vp = +ref;
     else if (opt) { const o = norm(opt); const hit = (c.vs || []).find(x => x.n === o); if (hit) vp = hit.id; }
-    return { c: view(c, opt, vp), q, nm: e.name || ref, how };
+    const v = view(c, opt, vp);
+    if (opt && !vp && (c.vs || []).length > 1 && !norm(v.vt || "").split(" ").some(w => w && norm(opt).split(" ").includes(w)))
+      optMiss = c.t + ": no option called '" + opt + "'. Options: " + c.vs.map(x => x.t).filter(Boolean).slice(0, 12).join(", ");
+    return { c: v, q, nm: e.name || ref, how, optMiss };
   }
   const raw = String(e || "").trim();
   let q = 1; const mq = raw.match(/\s*[x×]\s*(\d{1,2})\s*$/i); const nm = mq ? raw.slice(0, mq.index) : raw; if (mq) q = Math.max(1, Math.min(50, +mq[1]));
@@ -304,22 +307,22 @@ function renderTray(){
 function manageList({ action, items, names }){
   if (action === "clear") { LIST = []; saveList(); renderTray(); return "The list is now empty."; }
   if (action === "show") { $("tray") && $("tray").classList.add("open"); return listSummary(); }
-  const done = [], miss = [];
+  const done = [], miss = [], warn = [];
   entries(items, names).forEach(e => {
-    const { c, q, nm } = resolve(e); if (!c) { miss.push(nm); return; }
+    const { c, q, nm, optMiss } = resolve(e); if (optMiss) warn.push(optMiss); if (!c) { miss.push(nm); return; } if (optMiss && action === "add") return;
     if (action === "remove") { const hit = LIST.find(x => x.id === c.vid) || LIST.find(x => x.t.startsWith(c.t)); if (hit) { listRemove(hit.id); done.push(hit.t); } else miss.push(c.label + " (not in the list)"); return; }
     if (!(c.price && c.avail && c.vid)) { miss.push(c.label + " (not sold online, a salesperson can help)"); return; }
     listAdd(c, q); done.push(c.label + (q > 1 ? " x" + q : ""));
   });
-  return (done.length ? (action === "remove" ? "Removed: " : "Added: ") + done.join("; ") + ". " : "") + (miss.length ? "Could not add: " + miss.join("; ") + ". " : "") + listSummary();
+  return (done.length ? (action === "remove" ? "Removed: " : "Added: ") + done.join("; ") + ". " : "") + (miss.length ? "Could not add: " + miss.join("; ") + ". " : "") + (warn.length ? "WARNING " + warn.join(" | ") + " – nothing was added for that product; add it again with one of those options. " : "") + listSummary() + " (The list bar on the screen shows this; don't read the total out unless asked.)";
 }
 function showProducts({ items, names, clear }){
   const box = $("cards");
   const want = entries(items, names);
   if (clear || !want.length) { SHOWN = []; box.textContent = ""; document.body.classList.remove("has-cards", "multi"); return "The screen is now clear; no products are shown."; }
-  const seen = new Set(), missing = [], picks = [];
+  const seen = new Set(), missing = [], picks = [], warn = [];
   entries(items, names).slice(0,3).forEach(e => {
-    const { c, q: q0, nm } = resolve(e); if (!c) { missing.push(nm); return; } if (seen.has(c.h + c.vid)) return; seen.add(c.h + c.vid); picks.push([c, q0]);
+    const { c, q: q0, nm, optMiss } = resolve(e); if (optMiss) warn.push(optMiss); if (!c) { missing.push(nm); return; } if (seen.has(c.h + c.vid)) return; seen.add(c.h + c.vid); picks.push([c, q0]);
   });
   if (!picks.length) return CAT.length ? "Nothing new shown; the screen still shows the previous products. Not found: " + missing.join("; ") : "The product photos are not available right now; describe the products in words.";
   box.textContent = "";
@@ -383,7 +386,7 @@ function showProducts({ items, names, clear }){
   document.body.classList.toggle("has-cards", !!box.children.length);
   const shownTxt = picks.map(([c, q]) => (c.label || c.t) + (q > 1 ? " x" + q : "") + (c.price ? " (" + eur(c.price) + ")" : " (price on request)")).join("; ");
   SHOWN = picks.map(([c, q]) => (c.label || c.t) + (q > 1 ? " x" + q : "") + (c.h ? " [ref: " + c.h + "]" : ""));
-  return "Now on the screen: " + shownTxt + "." + (missing.length ? " Not found: " + missing.join("; ") + "." : "");
+  return "Now on the screen: " + shownTxt + "." + (missing.length ? " Not found: " + missing.join("; ") + "." : "") + (warn.length ? " WARNING " + warn.join(" | ") + " – showing the default option; call again with one of those options if the client wanted a specific one." : "") + " (Prices, deals, sizes and colours are on the cards – don't read them out unless asked.)";
 }
 const LINKS = {
   directions_showroom: ["Domestica Showroom", "Valley Road, Msida · Mon–Fri 09:00–13:00, 15:30–19:30 · Sat 09:00–13:00", "Get directions", "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent("Domestica, Triq Il-Wied Ta' L-Imsida, Msida, Malta")],
