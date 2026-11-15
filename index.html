@@ -133,12 +133,16 @@ function best(name){
 }
 const eur = n => { const v = Number(n); return "€" + v.toLocaleString("en-IE", Number.isInteger(v) ? { maximumFractionDigits: 0 } : { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
 function showProducts({ names }){
-  const box = $("cards"); box.textContent = "";
-  const seen = new Set();
-  const BASKET = [];
+  const box = $("cards");
+  const seen = new Set(), missing = [], picks = [];
   (Array.isArray(names) ? names : String(names||"").split(/[|;\n]/)).map(x=>String(x).trim()).filter(Boolean).slice(0,3).forEach(raw => {
     let q0 = 1; const mq = raw.match(/\s*[x×]\s*(\d{1,2})\s*$/i); const nm = mq ? raw.slice(0, mq.index) : raw; if (mq) q0 = Math.max(1, Math.min(50, +mq[1]));
-    const c = best(nm); if (!c || seen.has(c.h)) return; seen.add(c.h);
+    const c = best(nm); if (!c) { missing.push(nm); return; } if (seen.has(c.h)) return; seen.add(c.h); picks.push([c, q0]);
+  });
+  if (!picks.length) return CAT.length ? "Nothing new shown; the screen still shows the previous products. Not found: " + missing.join("; ") : "The product photos are not available right now; describe the products in words.";
+  box.textContent = "";
+  const BASKET = [];
+  picks.forEach(([c, q0]) => {
     const d = document.createElement("div"); d.className = "pc";
     const ph = () => { const f = document.createElement("div"); f.className = "ph"; f.textContent = "DOMESTICA"; return f; };
     if (c.img) { const i = document.createElement("img"); i.src = c.img + (c.img.includes("?") ? "&" : "?") + "width=600"; i.alt = c.t; i.onerror = () => i.replaceWith(ph()); d.appendChild(i); } else d.appendChild(ph());
@@ -187,7 +191,8 @@ function showProducts({ names }){
   if (!KIOSK && BASKET.length > 1) setAll();
   document.body.classList.toggle("multi", !KIOSK && BASKET.length > 1);
   document.body.classList.toggle("has-cards", !!box.children.length);
-  return box.children.length ? "shown" : "not found";
+  const shownTxt = picks.map(([c, q]) => c.t + (q > 1 ? " x" + q : "") + (c.price ? " (" + eur(c.price) + ")" : " (price on request)")).join("; ");
+  return "Now on the screen: " + shownTxt + "." + (missing.length ? " Not found: " + missing.join("; ") + "." : "");
 }
 window.__dom = { showProducts, cat: () => CAT.length };
 let conv = null, raf = 0, idleTimer = 0, starting = false;
