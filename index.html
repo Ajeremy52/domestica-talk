@@ -130,6 +130,9 @@ body.kiosk #langs button{font-size:18px;padding:10px 18px}
 body.connecting #langs,body.listening #langs,body.speaking #langs,body.has-cards #langs{display:none}
 .kio-only{display:none}body.kiosk .kio-only{display:inline}
 .foot{text-align:center;padding:0 12px}body.kiosk .foot{font-size:15px}
+html.ear #status::after{content:"";display:inline-block;width:.55em;height:.55em;margin-left:.5em;border-radius:50%;background:#2e9e5b;vertical-align:middle;animation:earp 1.6s ease-in-out infinite}
+@keyframes earp{50%{opacity:.35}}
+#heard{position:fixed;left:12px;bottom:10px;font:12px/1.3 system-ui,sans-serif;opacity:.6}
 </style>
 </head>
 <body>
@@ -448,23 +451,28 @@ const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 const WAKE = !!SR && (KIOSK || _q.get("wake") === "1");
 const idleTxt = () => T(WAKE ? "idleWake" : "idle");
 let rec = null, recOn = false;
+const DBG = _q.get("debug") === "1";
+// Chrome often writes the name as "domestic", "Dominica", "the mystic(a)" etc., so accept the common spellings
+const WAKE_RE = /dom[ae]?st?i[ck]+|domestik|dominica|mystica|the mystic|dome stick|doe mystic|dough mystic/;
 function wakeStop(){ clearTimeout(S.wakeTimer); recOn = false; if (rec) { try { rec.abort(); } catch(e){} } }
 function wakeListen(){
   clearTimeout(S.wakeTimer);
   if (!WAKE || busy() || recOn || document.hidden || (!KIOSK && !hasConsent())) return;
   if (!rec) {
     rec = new SR(); rec.continuous = true; rec.interimResults = true; rec.lang = "en-GB";
-    try { if ("processLocally" in rec) rec.processLocally = true; } catch(e){}   // on-device recognition where the browser offers it
     rec.onresult = (ev) => {
       if (busy()) return;
       for (let i = ev.resultIndex; i < ev.results.length; i++) {
         const t = ev.results[i][0].transcript.toLowerCase();
-        if (/dome?stic+[ae]|domestika|domestic a\b/.test(t)) { wakeStop(); start(); return; }
+        if (DBG) $("heard") && ($("heard").textContent = "Heard: " + t);
+        console.log("[wake] heard:", t);
+        if (WAKE_RE.test(t)) { wakeStop(); start(); return; }
       }
     };
-    rec.onend = () => { const was = recOn; recOn = false; if (was && !busy()) S.wakeTimer = setTimeout(wakeListen, 400); };
+    rec.onstart = () => document.documentElement.classList.add("ear");
+    rec.onend = () => { document.documentElement.classList.remove("ear"); const was = recOn; recOn = false; if (was && !busy()) S.wakeTimer = setTimeout(wakeListen, 400); };
     rec.onerror = (e) => {
-      if (e.error === "not-allowed" || e.error === "service-not-allowed") { recOn = false; rec = null; }
+      console.log("[wake] error:", e.error); if (e.error === "not-allowed" || e.error === "service-not-allowed") { recOn = false; rec = null; document.documentElement.classList.remove("ear"); if (!busy()) $("status").textContent = "Microphone is blocked: allow it in the address bar, or tap the orb"; }
       else if (e.error === "language-not-supported" && rec && rec.processLocally) { rec.processLocally = false; }
     };
   }
@@ -612,10 +620,12 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") { if (!$("
 // Save credits and free the mic: stop the call when the visitor leaves the page or locks the phone
 document.addEventListener("visibilitychange", () => { if (document.hidden) { wakeStop(); if (busy()) stop(); } else wakeListen(); });
 window.addEventListener("pagehide", () => { wakeStop(); if (busy()) stop(); });
+document.addEventListener("keydown", (e) => { if ((e.code === "Space" || e.key === "Enter") && !busy() && !/INPUT|TEXTAREA|SELECT|BUTTON/.test((document.activeElement||{}).tagName||"")) { e.preventDefault(); start(); } });
 if (WAKE) { $("status").textContent = idleTxt(); if (KIOSK || hasConsent()) navigator.mediaDevices.getUserMedia({ audio: true }).then(st => { st.getTracks().forEach(t => t.stop()); wakeListen(); }).catch(() => {}); }
 applyLang();
 window.__dom.showContactForm = () => showContactForm();
 window.__dom.state = () => ({ phase: S.phase, id: S.id, wake: recOn });
 </script>
+<div id="heard"></div>
 </body>
 </html>
