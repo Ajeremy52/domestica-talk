@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Domestica</title>
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#0b1713">
+<meta name="theme-color" content="#ffffff">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -133,14 +133,56 @@ body.connecting #langs,body.listening #langs,body.speaking #langs,body.has-cards
 html.ear #status::after{content:"";display:inline-block;width:.55em;height:.55em;margin-left:.5em;border-radius:50%;background:#2e9e5b;vertical-align:middle;animation:earp 1.6s ease-in-out infinite}
 @keyframes earp{50%{opacity:.35}}
 #heard{position:fixed;left:12px;bottom:10px;font:12px/1.3 system-ui,sans-serif;opacity:.6}
+
+/* ---- Domestica black and white ---- */
+:root{--g1:#ffffff;--g2:#9a9a9a;--g3:#2a2a2a;--bg:#ffffff}
+html,body{background:#fff!important;color:#000!important;font-family:"Helvetica Neue",Helvetica,Arial,system-ui,sans-serif!important}
+.brand{display:flex;flex-direction:column;align-items:center;gap:12px;margin-right:0!important;color:#000!important;letter-spacing:0!important}
+.brand img{height:clamp(28px,4.4vw,52px);width:auto;display:block}
+.brand span{font:700 clamp(10px,1.1vw,13px)/1 "Helvetica Neue",Helvetica,Arial,sans-serif;letter-spacing:.22em;background:#000;color:#fff;padding:6px 10px}
+#orb .core{background:radial-gradient(circle at 35% 30%,#fff 0%,#cfcfcf 22%,#5a5a5a 55%,#0a0a0a 82%,#000 100%)!important;box-shadow:0 0 0 3px rgba(0,0,0,.08),0 24px 70px rgba(0,0,0,.35)!important}
+#orb .core:after{border-color:rgba(0,0,0,.35)!important}
+#orb svg text{fill:#000!important;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif!important;letter-spacing:2.2px!important;font-size:8.6px!important}
+#status{color:#000}
+#sub{color:#333!important}#sub .you{color:#000!important;font-weight:600}
+.foot{color:#666!important}
+#end,#typebtn{border:1px solid #000!important;background:#fff!important;color:#000!important;border-radius:0!important;text-transform:uppercase;letter-spacing:.06em;font-size:14px!important}
+#end:hover,#typebtn:hover{background:#000!important;color:#fff!important}
+.pc{background:#fff!important;border:1px solid #000!important;border-radius:0!important;color:#000}
+.pc .ph{background:#f4f4f4!important;color:#000!important}
+.pc .p{color:#000!important}.pc .p s{color:#777!important}
+.pc.lk .p{color:#000!important}
+.pc .acts a{border:1px solid #000!important;color:#000!important;border-radius:0!important}
+.pc .acts a.buy,.pc .acts button{background:#000!important;color:#fff!important;border-color:#000!important;border-radius:0!important}
+.pc .vsel{background:#fff!important;color:#000!important;border:1px solid #000!important;border-radius:0!important}
+.pc .qty{color:#333!important}.pc .qty button{border:1px solid #000!important;color:#000!important;border-radius:0!important}.pc .qty b{color:#000!important}
+.pc .qr{color:#333!important}
+.pc .d{background:#000!important;border-radius:0!important}
+#allbuy{background:#000!important;color:#fff!important;border-radius:0!important}
+#tray{background:#fff!important;color:#000!important;border:1px solid #000;border-radius:0!important}
+#tray .ti{color:#000!important}#tray .tg{background:#000!important;border-radius:0!important}
+#tray .tr button{color:#000!important;text-decoration:underline}
+#privacy,#contact{background:rgba(0,0,0,.55)!important}
+.pv-card{border-radius:0!important;color:#000!important}
+.pv-btns button{border-radius:0!important;border-color:#000!important}
+#pv-ok{background:#000!important;border-color:#000!important}
+#typebar input{border:1px solid #000!important;border-radius:0!important;color:#000!important;background:#fff!important}
+#typebar button{background:#000!important;color:#fff!important;border-radius:0!important}
+#ct-form input,#ct-form select{border-radius:0!important;border-color:#999!important;color:#000!important}
+#langs button{border:1px solid #bbb!important;color:#000!important;border-radius:0!important}
+#langs button[aria-pressed="true"]{background:#000!important;color:#fff!important;border-color:#000!important}
+html.ear #status::after{background:#000!important}
+#orb{width:min(44vmin,360px)}
+main{gap:3vh}
+.brand img{height:clamp(26px,3.6vw,44px)}
 </style>
 </head>
 <body>
 <main>
-  <div class="brand">DOMESTICA</div>
+  <div class="brand"><img src="logo-black.png" alt="Domestica"><span>AI ASSISTANT</span></div>
   <button id="orb" type="button" aria-label="Tap to talk to Domestica">
     <div class="core"></div>
-    <svg viewBox="0 0 92 92" aria-hidden="true"><defs><path id="c" d="M46,46 m-37,0 a37,37 0 1,1 74,0 a37,37 0 1,1 -74,0"/></defs><g class="lt"><text><textPath href="#c">DOMESTICA · DOMESTICA · </textPath></text></g></svg>
+    <svg viewBox="0 0 92 92" aria-hidden="true"><defs><path id="c" d="M46,46 m-37,0 a37,37 0 1,1 74,0 a37,37 0 1,1 -74,0"/></defs><g class="lt"><text><textPath href="#c">DOMESTICA · AI ASSISTANT · </textPath></text></g></svg>
   </button>
   <div id="status">Tap the orb and say hello</div>
   <div id="langs" role="group" aria-label="Language"></div>
