@@ -193,6 +193,21 @@ body.connecting #orb .core::before{animation:earp 1s ease-in-out infinite}
 #orb .lt{animation:none!important}
 body.listening #orb svg,body.speaking #orb svg{animation-duration:6s!important}
 body.connecting #orb svg{animation-duration:2s!important}
+.vbars{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:9%;z-index:2}
+.vbars i{display:block;width:7%;height:16%;background:#fff;border-radius:99px;animation:vbar 1s ease-in-out infinite}
+.vbars i:nth-child(2){animation-delay:.15s}.vbars i:nth-child(3){animation-delay:.3s}.vbars i:nth-child(4){animation-delay:.45s}.vbars i:nth-child(5){animation-delay:.6s}
+@keyframes vbar{0%,100%{height:16%}50%{height:60%}}
+.vl{fill:#000;font-weight:700;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;transform-box:fill-box;transform-origin:50% 100%;animation:vlet 1s ease-in-out infinite}
+@keyframes vlet{0%,100%{transform:scaleY(.75) translateY(1px)}50%{transform:scaleY(1.25) translateY(-1px)}}
+.vring{transform-origin:46px 46px;animation:vspin 18s linear infinite}
+@keyframes vspin{to{transform:rotate(360deg)}}
+#dOrb .core::before,#orb .core::before{display:none!important}
+#dOrb.listen .vbars i,#dOrb.speak .vbars i,#dOrb.listen .vl,#dOrb.speak .vl,body.listening #orb .vbars i,body.speaking #orb .vbars i,body.listening #orb .vl,body.speaking #orb .vl{animation-duration:.5s}
+#dOrb svg,#orb svg{animation:none!important}
+
+#orb .vl{font-size:8.8px}
+body.listening #orb svg,body.speaking #orb svg,body.connecting #orb svg{animation:none!important}
+body.connecting #orb .vring{animation-duration:3s}
 </style>
 </head>
 <body>
@@ -687,5 +702,16 @@ window.__dom.showContactForm = () => showContactForm();
 window.__dom.state = () => ({ phase: S.phase, id: S.id, wake: recOn });
 </script>
 <div id="heard"></div>
-</body>
+<script>(function(){
+function build(btnSel){var b=document.querySelector(btnSel);if(!b||b.dataset.vb)return;b.dataset.vb=1;
+ var core=b.querySelector(".core"),svg=b.querySelector("svg");if(!core||!svg)return;
+ var bars=document.createElement("span");bars.className="vbars";for(var i=0;i<5;i++){bars.appendChild(document.createElement("i"))}core.appendChild(bars);
+ var NS="http://www.w3.org/2000/svg",txt="DOMESTICA · AI ASSISTANT · ",g=document.createElementNS(NS,"g");g.setAttribute("class","vring");
+ for(var k=0;k<txt.length;k++){var ch=txt[k];var a=k*360/txt.length;var gg=document.createElementNS(NS,"g");gg.setAttribute("transform","rotate("+a.toFixed(2)+" 46 46)");
+  var t=document.createElementNS(NS,"text");t.setAttribute("x","46");t.setAttribute("y","11.5");t.setAttribute("text-anchor","middle");t.setAttribute("class","vl");t.style.animationDelay=((k%5)*0.15)+"s";t.textContent=ch===" "?" ":ch;gg.appendChild(t);g.appendChild(gg)}
+ var old=svg.querySelector(".lt");if(old)old.style.display="none";svg.appendChild(g)}
+function go(){build("#dOrb");build("#orb")}
+if(document.readyState=="loading")document.addEventListener("DOMContentLoaded",go);else go();setTimeout(go,1500);
+})();
+</script></body>
 </html>
