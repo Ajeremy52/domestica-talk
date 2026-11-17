@@ -186,6 +186,13 @@ main{gap:3vh}
 @keyframes rip{from{transform:scale(1);opacity:.7}to{transform:scale(1.45);opacity:0}}
 body.listening #orb::before,body.listening #orb::after,body.listening #orb .core:after,body.speaking #orb::before,body.speaking #orb::after,body.speaking #orb .core:after{animation-duration:1.2s!important}
 body.connecting #orb .core::before{animation:earp 1s ease-in-out infinite}
+
+/* spinning lettering around the ripple orb */
+#orb svg{display:block!important;animation:spin 16s linear infinite!important}
+#orb svg text{fill:#000!important;letter-spacing:2.2px!important;font-size:8.4px!important}
+#orb .lt{animation:none!important}
+body.listening #orb svg,body.speaking #orb svg{animation-duration:6s!important}
+body.connecting #orb svg{animation-duration:2s!important}
 </style>
 </head>
 <body>
