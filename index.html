@@ -175,6 +175,17 @@ html.ear #status::after{background:#000!important}
 #orb{width:min(44vmin,360px)}
 main{gap:3vh}
 .brand img{height:clamp(26px,3.6vw,44px)}
+
+/* Ripple orb */
+#orb svg{display:none!important}
+#orb .core{background:#111!important;box-shadow:0 0 0 4px #fff,0 24px 60px -20px rgba(0,0,0,.55)!important}
+#orb .core::before{content:"D";position:absolute;inset:30%;border-radius:50%;background:#fff;color:#000;display:grid;place-items:center;font:700 clamp(36px,8vmin,72px)/1 "Helvetica Neue",Helvetica,Arial,sans-serif}
+#orb .core:after{inset:0!important;border:3px solid #9a9a9a!important;animation:rip 2.6s ease-out infinite!important}
+#orb::before,#orb::after{content:"";position:absolute;inset:15%;border-radius:50%;border:3px solid #9a9a9a;animation:rip 2.6s ease-out infinite;pointer-events:none}
+#orb::before{animation-delay:.87s}#orb::after{animation-delay:1.73s}
+@keyframes rip{from{transform:scale(1);opacity:.7}to{transform:scale(1.45);opacity:0}}
+body.listening #orb::before,body.listening #orb::after,body.listening #orb .core:after,body.speaking #orb::before,body.speaking #orb::after,body.speaking #orb .core:after{animation-duration:1.2s!important}
+body.connecting #orb .core::before{animation:earp 1s ease-in-out infinite}
 </style>
 </head>
 <body>
