@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Domestica · get the assistant</title>
+<meta name="theme-color" content="#ffffff">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="favicon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Domestica">
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;background:#fff;color:#000;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:max(28px,env(safe-area-inset-top)) 20px 28px;text-align:center}
+.logo{height:34px;margin-top:6px}
+.tag{display:inline-block;background:#000;color:#fff;font:700 11px/1 inherit;letter-spacing:.2em;padding:6px 9px;margin-top:10px}
+.orb{width:120px;height:120px;border-radius:50%;background:#111;margin:26px auto 8px;display:flex;align-items:center;justify-content:center;gap:9px;position:relative}
+.orb i{width:9px;border-radius:9px;background:#fff;animation:b 1s ease-in-out infinite}
+.orb i:nth-child(2){animation-delay:.15s}.orb i:nth-child(3){animation-delay:.3s}.orb i:nth-child(4){animation-delay:.45s}.orb i:nth-child(5){animation-delay:.6s}
+@keyframes b{0%,100%{height:16px}50%{height:58px}}
+.orb::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid #999;animation:r 2.4s ease-out infinite}
+@keyframes r{from{transform:scale(1);opacity:.7}to{transform:scale(1.5);opacity:0}}
+h1{font-weight:400;font-size:24px;margin:18px 0 4px}
+p.s{color:#555;font-size:15px;margin:0 0 22px;max-width:340px}
+.list{width:100%;max-width:380px;display:flex;flex-direction:column;gap:12px}
+.btn{display:flex;align-items:center;gap:14px;text-align:left;width:100%;padding:16px 18px;border:1px solid #000;background:#fff;color:#000;text-decoration:none;font:inherit;cursor:pointer}
+.btn.pri{background:#000;color:#fff}
+.btn b{display:block;font-size:16px;font-weight:600}
+.btn small{display:block;font-size:13px;opacity:.7;margin-top:3px}
+.ic{flex:none;width:40px;height:40px;display:grid;place-items:center}
+.ic svg{width:28px;height:28px}
+.done{font-size:13px;color:#2e7d4f;margin-top:4px;min-height:18px}
+#ios{display:none;background:#f4f4f4;padding:16px 18px;text-align:left;font-size:14px;line-height:1.5;max-width:380px;width:100%}
+#ios ol{margin:6px 0 0;padding-left:20px}
+.foot{margin-top:auto;padding-top:26px;font-size:12px;color:#777}
+</style></head><body>
+<img class="logo" src="logo-black.png" alt="Domestica">
+<span class="tag">AI ASSISTANT</span>
+<div class="orb" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+<h1>Keep Domestica close</h1>
+<p class="s">Add the assistant to your phone like an app, and save us on WhatsApp. Do one or both.</p>
+<div class="list">
+ <button class="btn pri" id="install" type="button"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M12 8v6M9 11l3 3 3-3"/></svg></span><span><b>Add the assistant to my phone</b><small>Opens the Domestica orb straight away, like an app</small></span></button>
+ <div id="ios"><b>On iPhone:</b><ol><li>Tap the Share button <span aria-hidden="true">⬆︎</span> at the bottom of Safari</li><li>Choose <b>Add to Home Screen</b></li><li>Tap <b>Add</b>. The Domestica orb is now on your home screen</li></ol></div>
+ <a class="btn" id="wa" href="https://wa.me/233538463004?text=Hi%20Domestica"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l1.6-4.6A8.5 8.5 0 1 1 8 19.6z"/><path d="M9 9.5c0 3 2.5 5.5 5.5 5.5l1.3-1.3-2-1-.8.8a4 4 0 0 1-2.5-2.5l.8-.8-1-2z"/></svg></span><span><b>Chat on WhatsApp</b><small>Opens our chat with “Hi Domestica” ready to send</small></span></a>
+ <a class="btn" id="vcf" href="domestica.vcf" download="Domestica.vcf"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="8" r="4"/><path d="M3 21c0-4 3-6 7-6s7 2 7 6M19 8v6M16 11h6"/></svg></span><span><b>Save Domestica to my contacts</b><small>So our WhatsApp shows by name in your chats</small></span></a>
+ <div class="done" id="msg"></div>
+</div>
+<p class="foot">Domestica · Valley Road, Msida · <a href="https://www.domestica.com.mt" style="color:inherit">domestica.com.mt</a></p>
+<script>
+var dp=null,ua=navigator.userAgent,ios=/iphone|ipad|ipod/i.test(ua)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1),standalone=window.matchMedia("(display-mode: standalone)").matches||window.navigator.standalone;
+window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();dp=e});
+window.addEventListener("appinstalled",function(){document.getElementById("msg").textContent="Added. Find the Domestica orb on your home screen."});
+if(standalone)location.replace("./?src=app");
+document.getElementById("install").addEventListener("click",function(){
+ if(dp){dp.prompt();dp.userChoice.then(function(r){if(r.outcome==="accepted")document.getElementById("msg").textContent="Added. Find the Domestica orb on your home screen.";dp=null});return}
+ if(ios){var b=document.getElementById("ios");b.style.display="block";b.scrollIntoView({behavior:"smooth",block:"center"});return}
+ document.getElementById("msg").textContent="Open your browser menu (⋮) and choose “Add to Home screen” or “Install app”.";
+});
+</script>
+</body></html>
